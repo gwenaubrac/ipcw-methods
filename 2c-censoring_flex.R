@@ -6,13 +6,18 @@
 ##
 ## Author: Gwen Aubrac
 ##
-## Date Created: 2024-07-22
+## Date Created: 2024-10-15
 ##
 ## ---------------------------
 ##
 ## Notes: 
 ##
 ## ---------------------------
+
+#### SPECIFY ANALYSIS ####
+
+# cohort: antidepressant, antihypertensive, antidiabetic
+exposure <- 'antidepressant'
 
 #### LOAD PACKAGES ####
 
@@ -26,24 +31,24 @@ library(ggplot2)
 
 #### DEFINE PATHS ####
 
-path_main <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/main" 
-path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/sensitivity/flex_grace_period" 
-cohort <- readRDS(file = paste(path_main, 'antidepressant_cohort.rds', sep = '/'))
+path_intermediate_res_main <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, 'all-cause mortality', 'main', 'intermediate', sep = '/')
+path_intermediate_res <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, 'all-cause mortality', 'flexible_grace_period', 'intermediate', sep = '/')
+cohort <- readRDS(file = paste(path_intermediate_res_main, 'cohort_creation.rds', sep = '/'))
 
 study_start = ymd(20190101)
 study_end = ymd(20221231) 
 study_follow_up_end = ymd(20240331) 
 
-setwd(path_cohort)
+setwd(path_intermediate_res)
 
-censor_desc <- "censor_desc.txt"
+censor_desc <- "censor_desc_flex.txt"
 writeLines("Censoring description:", censor_desc)
 cat(paste("Date:", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), '\n'), file = censor_desc, append= TRUE)
 
 #### SENSITIVITY ANALYSIS: FLEXIBLE GRACE PERIOD ####
 # The grace period for each patient is set to be the duration of the supply for each rx
 
-trt_supply_flex <- readRDS(file = paste(path_main, 'trt_supply_raw.rds', sep = '/'))
+trt_supply_flex <- readRDS(file = paste(path_intermediate_res_main, 'trt_supply_raw.rds', sep = '/'))
 summary(trt_supply_flex$date)
 
 # define three scenarios for discontinuation: single refill for trt, gap in refill, or last refill
@@ -112,14 +117,11 @@ cat(paste('Number of patients who did not discontinue their trt during study:', 
 cat('Number of patients who had a single refill:', length(which(disc_dates_flex$disc_date == disc_dates_flex$disc_date_single)))
 cat(paste('Number of patients who had a single refill:', length(which(disc_dates_flex$disc_date == disc_dates_flex$disc_date_single)), '\n'), file = censor_desc, append = TRUE)
 
-cat('Number of patients who had a', grace_period, 'day gap in refills:', length(which(disc_dates_flex$disc_date == disc_dates_flex$disc_date_gap)))
-cat(paste('Number of patients who had a', grace_period, 'day gap in refills:', length(which(disc_dates_flex$disc_date == disc_dates_flex$disc_date_gap)), '\n'), file = censor_desc, append = TRUE)
-
 cat('Number of patients whose last refill supply ended prior to study end:', length(which(disc_dates_flex$disc_date == disc_dates_flex$disc_date_last)))
 cat(paste('Number of patients whose last refill supply ended prior to study end:', length(which(disc_dates_flex$disc_date == disc_dates_flex$disc_date_last)), '\n'), file = censor_desc, append = TRUE)
 
 disc_dates_flex %<>% select (id, disc_date) 
 cohort <- merge(cohort, disc_dates_flex, by = 'id', all.x = TRUE)
 
-rm(trt_supply, disc_dates_flex, last_disc_dates)
-saveRDS(cohort, file = paste(path_cohort, 'antidepressant_cohort_censored.rds', sep='/'))
+rm(trt_supply_flex, disc_dates_flex, last_disc_dates_flex)
+saveRDS(cohort, file = paste(path_intermediate_res, 'cohort_censored.rds', sep='/'))

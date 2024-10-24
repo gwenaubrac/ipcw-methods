@@ -1,14 +1,15 @@
 ## ---------------------------
 ##
-## Program: 8. Incidence rates, hazard ratios, and survival curves
+## Program: 8b. Incidence rates and hazard ratios for clinical event
 ##
 ## Purpose: 
 ## 1. Calculate incidence rates, rate ratios, and rate differences with and without weights for the outcome by exposure group.
 ## 2. Calculate cox proportional hazard ratios with and without rates for the outcome by exposure group. 
+##    - For clinical outcomes, competing risk of death is handled using a Fine-Gray Cox regression model. 
 ##
 ## Author: Gwen Aubrac
 ##
-## Date Created: 2024-07-22
+## Date Created: 2024-10-21
 ##
 ## ---------------------------
 ##
@@ -17,11 +18,18 @@
 ##
 ## ---------------------------
 
-# analysis: flex_grace_period, 90_day_grace_period
-# male, female, young, old, 2019, 2020, 2021, 2022
-# depressed, not_depressed
+#### SPECIFY ANALYSIS ####
 
-analysis <- ''
+# cohort: antidepressant, antihypertensive, antidiabetic
+exposure <- 'antihypertensive'
+
+# outcome: all-cause mortality, suicidal ideation
+outcome <- 'suicidal ideation'
+
+# analysis: main, flexible_grace_period, 90_day_grace_period, male, female
+# young, old, 2019, 2020, 2021, 2022
+# depressed, not_depressed
+analysis <- 'main'
 
 #### LOAD PACKAGES ####
 
@@ -32,74 +40,34 @@ library(survminer)
 library(ggplot2)
 library(writexl)
 library(lubridate)
+library(cmprsk)
 
 #### DEFINE PATHS ####
 
-path_main <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/main" 
+path_intermediate_res <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, analysis, 'intermediate', sep = '/')
+path_final_res <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, analysis, 'final', sep = '/')
 
-if (analysis == 'main' | analysis == '') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/main" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/main" 
-} else if (analysis == 'male') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/male" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/male" 
-} else if (analysis == 'female') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/female" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/female" 
-} else if (analysis == 'young') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/young" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/young" 
-} else if (analysis == 'old') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/old" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/old" 
-} else if (analysis == '2019') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/2019" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/2019" 
-} else if (analysis == '2020') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/2020" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/2020" 
-} else if (analysis == '2021') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/2021" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/2021" 
-} else if (analysis == '2022') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/2022" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/2022" 
-} else if (analysis == 'flex_grace_period') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/sensitivity/flex_grace_period" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/sensitivity/flex_grace_period" 
-} else if (analysis == '90_day_grace_period') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/sensitivity/90_day_grace_period" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/sensitivity/90_day_grace_period" 
-} else if (analysis == 'depressed') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/depressed" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/depressed" 
-} else if (analysis == 'not_depressed') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/not_depressed" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/not_depressed" 
-} 
-
-
-path_comorb_cprd <- "Z:/EPI/Protocol 24_004042/Gwen/data/comorbidities/Aurum codes comorbidities"
+path_comorb_cprd <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/data', exposure, 'comorbidities', 'Aurum code comorbidities', sep = '/')
 comorb_cprd_files <- list.files(path_comorb_cprd, pattern = '.xlsx', all.files = TRUE, full.names = TRUE)
 
-setwd(path_results)
+setwd(path_intermediate_res)
 
-cohort <- readRDS(file = paste(path_cohort, 'antidepressant_cohort_iptw.rds', sep = '/'))
-cohort_long <- readRDS(file = paste(path_cohort, 'antidepressant_cohort_ipcw.rds', sep = '/'))
-covariates <- readRDS(file = paste(path_main, 'covariates.rds', sep = '/'))
-comorbidities <- readRDS(file = paste(path_main, 'comorbidities.rds', sep = '/'))
-base_comorb <- readRDS(file = paste(path_main, 'base_comorb.rds', sep = '/'))
-dec_comorb <- readRDS(file = paste(path_main, 'dec_comorb.rds', sep = '/'))
+cohort <- readRDS(file = paste(path_intermediate_res, 'cohort_iptw.rds', sep = '/'))
+cohort_long <- readRDS(file = paste(path_intermediate_res, 'cohort_ipcw.rds', sep = '/'))
+covariates <- readRDS(file = paste(path_intermediate_res, 'covariates.rds', sep = '/'))
+comorbidities <- readRDS(file = paste(path_intermediate_res, 'comorbidities.rds', sep = '/'))
+base_comorb <- readRDS(file = paste(path_intermediate_res, 'base_comorb.rds', sep = '/'))
+dec_comorb <- readRDS(file = paste(path_intermediate_res, 'dec_comorb.rds', sep = '/'))
 
 if (analysis == 'depressed' | analysis == 'not_depressed') {
   comorbidities <- comorbidities[!comorbidities %in% c('depression')]
   base_comorb <- base_comorb[!base_comorb %in% c('depression_base')]
   dec_comorb <- dec_comorb[!dec_comorb %in% c('depression_d1', 'depression_d2', 'depression_d3',
-                                                  'depression_d4', 'depression_d5', 'depression_d6', 
-                                                  'depression_d7', 'depression_d8', 'depression_d9')]
+                                              'depression_d4', 'depression_d5', 'depression_d6', 
+                                              'depression_d7', 'depression_d8', 'depression_d9')]
 }
 
-times_dec <- readRDS(paste(path_cohort, 'times_dec.rds', sep = '/'))
+times_dec <- readRDS(paste(path_intermediate_res, 'times_dec.rds', sep = '/'))
 times_dec <- times_dec[1:9] # remove last decile (100%) for splitting later on
 times_dec
 
@@ -116,6 +84,18 @@ table(cohort$trt)
 # quick overview table of events
 table(cohort$itt_event, cohort$trt_dummy)
 cohort$itt_event <- as.numeric(cohort$itt_event)
+
+cohort_analytic_itt <- cohort
+cohort_analytic_itt$itt_event <- as.numeric(cohort_analytic_itt$itt_event)
+
+cohort_analytic_itt %<>%
+  mutate (
+    person_time = as.numeric(itt_exit_date - entry_date),
+    iptw_person_time = person_time * iptw,
+    siptw_person_time = person_time * siptw,
+    iptw_event = itt_event * iptw,
+    siptw_event = itt_event * siptw,
+  )
 
 # no weights
 itt_ir <- cohort_analytic_itt %>%
@@ -161,64 +141,81 @@ itt_ir_iptw$model <- 'itt_ir_iptw'
 
 #### ITT ANALYSIS: HAZARD RATIOS ####
 
-## no weights
-cox_itt <- coxph(
-  Surv(as.numeric(itt_exit_date - entry_date), itt_event) ~ trt_dummy,
-  data = cohort_analytic_itt,
-  cluster = id,
-  robust = TRUE
-)
+# competing risk: status
+# 0 - event-free (censored due to reason other than outcome or death)
+# 1 - primary event (outcome)
+# 2 - competing event (death)
 
-ph <- cox.zph(cox_itt, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) # check proportional hazard assumption, all p-values should be large (>0.05)
+cohort_analytic_itt <- cohort_analytic_itt %>% 
+  mutate(status = case_when(
+    itt_event == 1 & itt_exit_date == itt_event_date ~ 1,
+    !is.na(dod) & itt_exit_date == dod ~ 2,
+    TRUE ~ 0
+  ))
+
+table(cohort_analytic_itt$status)
+
+etime <- cohort_analytic_itt$itt_follow_up
+event <- cohort_analytic_itt$status
+event <- factor(event, 0:2, labels=c("censor", "event", "death"))
+
+## no weights
+fg_data <- finegray(Surv(etime, event) ~ trt_dummy + id, data = cohort_analytic_itt, id = id)
+fg_cox_itt <- coxph(Surv(fgstart, fgstop, fgstatus) ~ trt_dummy,
+               weight = fgwt, 
+               data = fg_data,
+               cluster = id,
+               robust = TRUE)
+
+ph <- cox.zph(fg_cox_itt, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) # check proportional hazard assumption, all p-values should be large (>0.05)
 ph
 
-png(filename = 'cox_itt_ph.png', width = 3000, height = 3000, res = 500)
+png(filename = 'fg_cox_itt_ph.png', width = 3000, height = 3000, res = 500)
 plot(ph)
 dev.off()
 
-summary(cox_itt)
-saveRDS(cox_itt, file = paste(path_results, 'cox_itt.rds', sep = '/'))
+summary(fg_cox_itt)
+saveRDS(fg_cox_itt, file = paste(path_final_res, 'fg_cox_itt.rds', sep = '/'))
 
 ## IPTW weights
 
 # unstab
-cox_itt_iptw <- coxph(
-  Surv(as.numeric(itt_exit_date, entry_date), itt_event) ~ trt_dummy,
-  data = cohort_analytic_itt,
-  weights = iptw,
-  cluster = id,
-  robust = TRUE
-)
+fg_data <- finegray(Surv(etime, event) ~ trt_dummy + id, data = cohort_analytic_itt, id = id, weights = iptw)
+fg_cox_itt_iptw <- coxph(Surv(fgstart, fgstop, fgstatus) ~ trt_dummy,
+                    weight = fgwt, 
+                    data = fg_data,
+                    cluster = id,
+                    robust = TRUE)
 
-ph <- cox.zph(cox_itt_iptw, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
+ph <- cox.zph(fg_cox_itt_iptw, transform="km", terms=TRUE, singledf=FALSE, global=TRUE)
 ph
 
-png(filename = 'cox_itt_iptw_ph.png', width = 3000, height = 3000, res = 500)
+png(filename = 'fg_cox_itt_iptw_ph.png', width = 3000, height = 3000, res = 500)
 plot(ph)
 dev.off()
 
-summary(cox_itt_iptw)
-saveRDS(cox_itt_iptw, file = paste(path_results, 'cox_itt_iptw.rds', sep = '/'))
+summary(fg_cox_itt_iptw)
+saveRDS(fg_cox_itt_iptw, file = paste(path_final_res, 'fg_cox_itt_iptw.rds', sep = '/'))
 
 # stab
-cox_itt_siptw <- coxph(
-  Surv(as.numeric(itt_exit_date, entry_date), itt_event) ~ trt_dummy,
-  data = cohort_analytic_itt,
-  weights = siptw,
-  cluster = id,
-  robust = TRUE
-)
+fg_data <- finegray(Surv(etime, event) ~ trt_dummy + id, data = cohort_analytic_itt, id = id, weights = siptw)
+fg_cox_itt_siptw <- coxph(Surv(fgstart, fgstop, fgstatus) ~ trt_dummy,
+                         weight = fgwt, 
+                         data = fg_data,
+                         cluster = id,
+                         robust = TRUE)
 
-ph <- cox.zph(cox_itt_siptw, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
+ph <- cox.zph(fg_cox_itt_siptw, transform="km", terms=TRUE, singledf=FALSE, global=TRUE)
 ph
 
-png(filename = 'cox_itt_siptw_ph.png', width = 3000, height = 3000, res = 500)
+png(filename = 'fg_cox_itt_siptw_ph.png', width = 3000, height = 3000, res = 500)
 plot(ph)
 dev.off()
 
-summary(cox_itt_siptw)
-saveRDS(cox_itt_siptw, file = paste(path_results, 'cox_itt_siptw.rds', sep = '/'))
-rm(cox_itt, cox_itt_iptw, cox_itt_siptw)
+summary(fg_cox_itt_siptw)
+saveRDS(fg_cox_itt_siptw, file = paste(path_final_res, 'fg_cox_itt_siptw.rds', sep = '/'))
+
+rm(fg_cox_itt, fg_cox_itt_iptw, fg_cox_itt_siptw)
 
 #### AT ANALYSIS: ANALYTIC COHORT DATAFRAME ####
 
@@ -232,7 +229,9 @@ cohort_analytic_at <- cohort
 
 cohort_analytic_at$time <- pmin(cohort_analytic_at$at_exit_date, cohort_analytic_at$at_event_date, na.rm = TRUE)
 cohort_analytic_at$event_at_time <- ifelse(is.na(cohort_analytic_at$at_event_date), 0, ifelse(cohort_analytic_at$time == cohort_analytic_at$at_event_date, 1, 0))
+cohort_analytic_at$death_at_time <- ifelse(is.na(cohort_analytic_at$dod), 0, ifelse(cohort_analytic_at$time == cohort_analytic_at$dod, 1, 0))
 cohort_analytic_at$event_counting_time <- as.numeric(difftime(cohort_analytic_at$at_event_date, cohort_analytic_at$entry_date, units = 'days'))
+cohort_analytic_at$death_counting_time <- as.numeric(difftime(cohort_analytic_at$dod, cohort_analytic_at$entry_date, units = 'days'))
 cohort_analytic_at$counting_time <- as.numeric(difftime(cohort_analytic_at$time, cohort_analytic_at$entry_date, units = "days"))
 cohort_analytic_at <- cohort_analytic_at[order(cohort_analytic_at$counting_time),]
 
@@ -243,6 +242,10 @@ cohort_analytic_at <- survSplit(cohort_analytic_at, cut=times_dec, end="counting
 names(cohort_analytic_at)[names(cohort_analytic_at) == 'counting_time'] <- 'Tstop'
 cohort_analytic_at$event_at_tstop <- if_else(is.na(cohort_analytic_at$event_counting_time), 0, # indicator for having event for given time interval
                                              if_else(cohort_analytic_at$Tstop == cohort_analytic_at$event_counting_time, 1, 0)) 
+
+cohort_analytic_at$death_at_tstop <- if_else(is.na(cohort_analytic_at$death_counting_time), 0, # indicator for died for given time interval
+                                             if_else(cohort_analytic_at$Tstop == cohort_analytic_at$death_counting_time, 1, 0)) 
+
 
 # retrieve covariate values at deciles
 for (i in 1:length(comorbidities)) {
@@ -287,6 +290,7 @@ for (i in 1:length(comorbidities)) {
 }
 
 table(cohort_analytic_at$event_at_tstop, cohort_analytic_at$trt)
+table(cohort_analytic_at$death_at_tstop, cohort_analytic_at$trt)
 
 # add IPCW corresponding to time interval
 cohort_analytic_at$decTstart <- if_else(
@@ -334,7 +338,8 @@ cohort_analytic_at <- cohort_analytic_at %>%
 
 cohort_analytic_at$at_event <- as.numeric(cohort_analytic_at$at_event)
 
-saveRDS(cohort_analytic_at, file = paste(path_results, 'cohort_analytic_at.rds', sep = '/'))
+# for plots later
+saveRDS(cohort_analytic_at, file = paste(path_intermediate_res, 'cohort_analytic_at.rds', sep = '/'))
 
 #### AT ANALYSIS: INCIDENCE RATES ####
 
@@ -639,371 +644,409 @@ at_ir_iptw_ipcw_pl_lag$model <- 'at_ir_iptw_ipcw_pl_lag'
 
 #### AT ANALYSIS: HAZARD RATIOS ####
 
-## NO WEIGHTS
-cox_at <- coxph(
-  Surv(Tstart, Tstop, event_at_tstop) ~ trt_dummy,
-  data = cohort_analytic_at,
-  cluster = id,
-  robust = TRUE
-)
+# competing risk: status
+# 0 - event-free (censored due to reason other than outcome or death)
+# 1 - primary event (event_at_tstop)
+# 2 - competing event (death_at_tstop)
 
-ph <- cox.zph(cox_at, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
+cohort_analytic_at <- cohort_analytic_at %>% 
+  mutate(status = case_when(
+    event_at_tstop == 1 ~ 1,
+    death_at_tstop == 1 ~ 2,
+    TRUE ~ 0
+  ))
+
+table(cohort_analytic_at$status)
+
+etime <- as.numeric(cohort_analytic_at$Tstop - cohort_analytic_at$Tstart)
+event <- cohort_analytic_at$status
+event <- factor(event, 0:2, labels=c("censor", "event", "death"))
+
+## NO WEIGHTS
+fg_data <- finegray(Surv(etime, event) ~ trt_dummy + id, data = cohort_analytic_at, id = id)
+fg_cox_at <- coxph(Surv(fgstart, fgstop, fgstatus) ~ trt_dummy,
+                    weight = fgwt, 
+                    data = fg_data,
+                    cluster = id,
+                    robust = TRUE)
+
+ph <- cox.zph(fg_cox_at, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
 ph
 
-png(filename = 'cox_at_ph.png', width = 3000, height = 3000, res = 500)
+png(filename = 'fg_cox_at_ph.png', width = 3000, height = 3000, res = 500)
 plot(ph)
 dev.off()
 
-summary(cox_at)
-saveRDS(cox_at, file = paste(path_results, 'cox_at.rds', sep = '/'))
+summary(fg_cox_at)
+saveRDS(fg_cox_at, file = paste(path_final_res, 'fg_cox_at.rds', sep = '/'))
+
+rm(fg_data, fg_cox_at)
 
 ## IPTW weights
 # unstab
-cox_at_iptw <- coxph(
-  Surv(Tstart, Tstop, event_at_tstop) ~ trt_dummy,
-  data = cohort_analytic_at,
-  weights = iptw,
-  cluster = id,
-  robust = TRUE
-)
+fg_data <- finegray(Surv(etime, event) ~ trt_dummy + id, data = cohort_analytic_at, id = id, weights = iptw)
+fg_cox_at_iptw <- coxph(Surv(fgstart, fgstop, fgstatus) ~ trt_dummy,
+                   weight = fgwt, 
+                   data = fg_data,
+                   cluster = id,
+                   robust = TRUE)
 
-ph <- cox.zph(cox_at_iptw, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
+ph <- cox.zph(fg_cox_at_iptw, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
 ph
 
-png(filename = 'cox_at_iptw_ph.png', width = 3000, height = 3000, res = 500)
+png(filename = 'fg_cox_at_iptw_ph.png', width = 3000, height = 3000, res = 500)
 plot(ph)
 dev.off()
 
-summary(cox_at_iptw)
-saveRDS(cox_at_iptw, file = paste(path_results, 'cox_at_iptw.rds', sep = '/'))
+summary(fg_cox_at_iptw)
+saveRDS(fg_cox_at_iptw, file = paste(path_final_res, 'fg_cox_at_iptw.rds', sep = '/'))
+
+rm(fg_data, fg_cox_at_iptw)
 
 # stab
-cox_at_siptw <- coxph(
-  Surv(Tstart, Tstop, event_at_tstop) ~ trt_dummy,
-  data = cohort_analytic_at,
-  weights = siptw,
-  cluster = id,
-  robust = TRUE
-)
+fg_data <- finegray(Surv(etime, event) ~ trt_dummy + id, data = cohort_analytic_at, id = id, weights = siptw)
+fg_cox_at_siptw <- coxph(Surv(fgstart, fgstop, fgstatus) ~ trt_dummy,
+                        weight = fgwt, 
+                        data = fg_data,
+                        cluster = id,
+                        robust = TRUE)
 
-ph <- cox.zph(cox_at_siptw, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
+ph <- cox.zph(fg_cox_at_siptw, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
 ph
 
-png(filename = 'cox_at_siptw_ph.png', width = 3000, height = 3000, res = 500)
+png(filename = 'fg_cox_at_siptw_ph.png', width = 3000, height = 3000, res = 500)
 plot(ph)
 dev.off()
 
-summary(cox_at_siptw)
-saveRDS(cox_at_siptw, file = paste(path_results, 'cox_at_siptw.rds', sep = '/'))
+summary(fg_cox_at_siptw)
+saveRDS(fg_cox_at_siptw, file = paste(path_final_res, 'fg_cox_at_siptw.rds', sep = '/'))
+
+rm(fg_data, fg_cox_at_siptw)
 
 ## STRATIFIED LAGGED WEIGHTS
 # unstab
-cox_at_ipcw_str_lag <- coxph(
-  Surv(Tstart, Tstop, event_at_tstop) ~ trt_dummy,
-  data = cohort_analytic_at,
-  weights = ipcw_str_lag,
-  cluster = id,
-  robust = TRUE
-)
+fg_data <- finegray(Surv(etime, event) ~ trt_dummy + id, data = cohort_analytic_at, id = id, weights = ipcw_str_lag)
+fg_cox_at_ipcw_str_lag <- coxph(Surv(fgstart, fgstop, fgstatus) ~ trt_dummy,
+                         weight = fgwt, 
+                         data = fg_data,
+                         cluster = id,
+                         robust = TRUE)
 
-ph <- cox.zph(cox_at_ipcw_str_lag, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
+ph <- cox.zph(fg_cox_at_ipcw_str_lag, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
 ph
 
-png(filename = 'cox_at_ipcw_str_lag_ph.png', width = 3000, height = 3000, res = 500)
+png(filename = 'fg_cox_at_ipcw_str_lag_ph.png', width = 3000, height = 3000, res = 500)
 plot(ph)
 dev.off()
 
-summary(cox_at_ipcw_str_lag)
-saveRDS(cox_at_ipcw_str_lag, file = paste(path_results, 'cox_at_ipcw_str_lag.rds', sep = '/'))
+summary(fg_cox_at_ipcw_str_lag)
+saveRDS(fg_cox_at_ipcw_str_lag, file = paste(path_final_res, 'fg_cox_at_ipcw_str_lag.rds', sep = '/'))
+
+rm(fg_data, fg_cox_at_ipcw_str_lag)
 
 # stab
-cox_at_sipcw_str_lag <- coxph(
-  Surv(Tstart, Tstop, event_at_tstop) ~ trt_dummy,
-  data = cohort_analytic_at,
-  weights = sipcw_str_lag,
-  cluster = id,
-  robust = TRUE
-)
+fg_data <- finegray(Surv(etime, event) ~ trt_dummy + id, data = cohort_analytic_at, id = id, weights = sipcw_str_lag)
+fg_cox_at_sipcw_str_lag <- coxph(Surv(fgstart, fgstop, fgstatus) ~ trt_dummy,
+                                weight = fgwt, 
+                                data = fg_data,
+                                cluster = id,
+                                robust = TRUE)
 
-ph <- cox.zph(cox_at_sipcw_str_lag, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
+ph <- cox.zph(fg_cox_at_sipcw_str_lag, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
 ph
 
-png(filename = 'cox_at_sipcw_str_lag_ph.png', width = 3000, height = 3000, res = 500)
+png(filename = 'fg_cox_at_sipcw_str_lag_ph.png', width = 3000, height = 3000, res = 500)
 plot(ph)
 dev.off()
 
-summary(cox_at_sipcw_str_lag)
-saveRDS(cox_at_sipcw_str_lag, file = paste(path_results, 'cox_at_sipcw_str_lag.rds', sep = '/'))
+summary(fg_cox_at_sipcw_str_lag)
+saveRDS(fg_cox_at_sipcw_str_lag, file = paste(path_final_res, 'fg_cox_at_sipcw_str_lag.rds', sep = '/'))
+
+rm(fg_data, fg_cox_at_sipcw_str_lag)
 
 # iptw
-cox_at_iptw_ipcw_str_lag <- coxph(
-  Surv(Tstart, Tstop, event_at_tstop) ~ trt_dummy,
-  data = cohort_analytic_at,
-  weights = iptw * ipcw_str_lag,
-  cluster = id,
-  robust = TRUE
-)
+fg_data <- finegray(Surv(etime, event) ~ trt_dummy + id, data = cohort_analytic_at, id = id, weights = iptw * ipcw_str_lag)
+fg_cox_at_iptw_ipcw_str_lag <- coxph(Surv(fgstart, fgstop, fgstatus) ~ trt_dummy,
+                                weight = fgwt, 
+                                data = fg_data,
+                                cluster = id,
+                                robust = TRUE)
 
-ph <- cox.zph(cox_at_iptw_ipcw_str_lag, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
+ph <- cox.zph(fg_cox_at_iptw_ipcw_str_lag, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
 ph
 
-png(filename = 'cox_at_iptw_ipcw_str_lag_ph.png', width = 3000, height = 3000, res = 500)
+png(filename = 'fg_cox_at_iptw_ipcw_str_lag_ph.png', width = 3000, height = 3000, res = 500)
 plot(ph)
 dev.off()
 
-summary(cox_at_iptw_ipcw_str_lag)
-saveRDS(cox_at_iptw_ipcw_str_lag, file = paste(path_results, 'cox_at_iptw_ipcw_str_lag.rds', sep = '/'))
+summary(fg_cox_at_iptw_ipcw_str_lag)
+saveRDS(fg_cox_at_iptw_ipcw_str_lag, file = paste(path_final_res, 'fg_cox_at_iptw_ipcw_str_lag.rds', sep = '/'))
+
+rm(fg_data, fg_cox_at_iptw_ipcw_str_lag)
 
 # siptw
-cox_at_siptw_sipcw_str_lag <- coxph(
-  Surv(Tstart, Tstop, event_at_tstop) ~ trt_dummy,
-  data = cohort_analytic_at,
-  weights = siptw * sipcw_str_lag,
-  cluster = id,
-  robust = TRUE
-)
+fg_data <- finegray(Surv(etime, event) ~ trt_dummy + id, data = cohort_analytic_at, id = id, weights = siptw * sipcw_str_lag)
+fg_cox_at_siptw_sipcw_str_lag <- coxph(Surv(fgstart, fgstop, fgstatus) ~ trt_dummy,
+                                     weight = fgwt, 
+                                     data = fg_data,
+                                     cluster = id,
+                                     robust = TRUE)
 
-ph <- cox.zph(cox_at_siptw_sipcw_str_lag, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
+ph <- cox.zph(fg_cox_at_siptw_sipcw_str_lag, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
 ph
 
-png(filename = 'cox_at_siptw_sipcw_str_lag_ph.png', width = 3000, height = 3000, res = 500)
+png(filename = 'fg_cox_at_siptw_sipcw_str_lag_ph.png', width = 3000, height = 3000, res = 500)
 plot(ph)
 dev.off()
 
-summary(cox_at_siptw_sipcw_str_lag)
-saveRDS(cox_at_siptw_sipcw_str_lag, file = paste(path_results, 'cox_at_siptw_sipcw_str_lag.rds', sep = '/'))
+summary(fg_cox_at_siptw_sipcw_str_lag)
+saveRDS(fg_cox_at_siptw_sipcw_str_lag, file = paste(path_final_res, 'fg_cox_at_siptw_sipcw_str_lag.rds', sep = '/'))
+
+rm(fg_data, fg_cox_at_siptw_sipcw_str_lag)
 
 ## STRATIFIED NON-LAGGED WEIGHTS
 # unstab
-cox_at_icpw_nonlag <- coxph(
-  Surv(Tstart, Tstop, event_at_tstop) ~ trt_dummy,
-  data = cohort_analytic_at,
-  weights = ipcw_str_nonlag,
-  cluster = id,
-  robust = TRUE
-)
+fg_data <- finegray(Surv(etime, event) ~ trt_dummy + id, data = cohort_analytic_at, id = id, weights = ipcw_str_nonlag)
+fg_cox_at_ipcw_str_nonlag <- coxph(Surv(fgstart, fgstop, fgstatus) ~ trt_dummy,
+                                weight = fgwt, 
+                                data = fg_data,
+                                cluster = id,
+                                robust = TRUE)
 
-ph <- cox.zph(cox_at_icpw_nonlag, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
+ph <- cox.zph(fg_cox_at_ipcw_str_nonlag, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
 ph
 
-png(filename = 'cox_at_icpw_nonlag_ph.png', width = 3000, height = 3000, res = 500)
+png(filename = 'fg_cox_at_ipcw_str_nonlag_ph.png', width = 3000, height = 3000, res = 500)
 plot(ph)
 dev.off()
 
-summary(cox_at_icpw_nonlag)
-saveRDS(cox_at_icpw_nonlag, file = paste(path_results, 'cox_at_ipcw_str_nonlag.rds', sep = '/'))
+summary(fg_cox_at_ipcw_str_nonlag)
+saveRDS(fg_cox_at_ipcw_str_nonlag, file = paste(path_final_res, 'fg_cox_at_ipcw_str_nonlag.rds', sep = '/'))
+
+rm(fg_data, fg_cox_at_ipcw_str_nonlag)
 
 # stab
-cox_at_sipcw_str_nonlag <- coxph(
-  Surv(Tstart, Tstop, event_at_tstop) ~ trt_dummy,
-  data = cohort_analytic_at,
-  weights = sipcw_str_nonlag,
-  cluster = id,
-  robust = TRUE
-)
+fg_data <- finegray(Surv(etime, event) ~ trt_dummy + id, data = cohort_analytic_at, id = id, weights = sipcw_str_nonlag)
+fg_cox_at_sipcw_str_nonlag <- coxph(Surv(fgstart, fgstop, fgstatus) ~ trt_dummy,
+                                   weight = fgwt, 
+                                   data = fg_data,
+                                   cluster = id,
+                                   robust = TRUE)
 
-ph <- cox.zph(cox_at_sipcw_str_nonlag, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
+ph <- cox.zph(fg_cox_at_sipcw_str_nonlag, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
 ph
 
-png(filename = 'cox_at_sipcw_str_nonlag.png', width = 3000, height = 3000, res = 500)
+png(filename = 'fg_cox_at_sipcw_str_nonlag_ph.png', width = 3000, height = 3000, res = 500)
 plot(ph)
 dev.off()
 
-summary(cox_at_sipcw_str_nonlag)
-saveRDS(cox_at_sipcw_str_nonlag, file = paste(path_results, 'cox_at_sipcw_str_nonlag.rds', sep = '/'))
+summary(fg_cox_at_sipcw_str_nonlag)
+saveRDS(fg_cox_at_sipcw_str_nonlag, file = paste(path_final_res, 'fg_cox_at_sipcw_str_nonlag.rds', sep = '/'))
+
+rm(fg_data, fg_cox_at_sipcw_str_nonlag)
 
 # iptw
-cox_at_iptw_ipcw_str_nonlag <- coxph(
-  Surv(Tstart, Tstop, event_at_tstop) ~ trt_dummy,
-  data = cohort_analytic_at,
-  weights = iptw * ipcw_str_nonlag,
-  cluster = id,
-  robust = TRUE
-)
+fg_data <- finegray(Surv(etime, event) ~ trt_dummy + id, data = cohort_analytic_at, id = id, weights = iptw * ipcw_str_nonlag)
+fg_cox_at_iptw_ipcw_str_nonlag <- coxph(Surv(fgstart, fgstop, fgstatus) ~ trt_dummy,
+                                   weight = fgwt, 
+                                   data = fg_data,
+                                   cluster = id,
+                                   robust = TRUE)
 
-ph <- cox.zph(cox_at_iptw_ipcw_str_nonlag, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
+ph <- cox.zph(fg_cox_at_iptw_ipcw_str_nonlag, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
 ph
 
-png(filename = 'cox_at_iptw_ipcw_str_nonlag_ph.png', width = 3000, height = 3000, res = 500)
+png(filename = 'fg_cox_at_iptw_ipcw_str_nonlag_ph.png', width = 3000, height = 3000, res = 500)
 plot(ph)
 dev.off()
 
-summary(cox_at_iptw_ipcw_str_nonlag)
-saveRDS(cox_at_iptw_ipcw_str_nonlag, file = paste(path_results, 'cox_at_iptw_ipcw_str_nonlag.rds', sep = '/'))
+summary(fg_cox_at_iptw_ipcw_str_nonlag)
+saveRDS(fg_cox_at_iptw_ipcw_str_nonlag, file = paste(path_final_res, 'fg_cox_at_iptw_ipcw_str_nonlag.rds', sep = '/'))
+
+rm(fg_data, fg_cox_at_iptw_ipcw_str_nonlag)
 
 # siptw
-cox_at_siptw_sipcw_str_nonlag <- coxph(
-  Surv(Tstart, Tstop, event_at_tstop) ~ trt_dummy,
-  data = cohort_analytic_at,
-  weights = siptw * sipcw_str_nonlag,
-  cluster = id,
-  robust = TRUE
-)
+fg_data <- finegray(Surv(etime, event) ~ trt_dummy + id, data = cohort_analytic_at, id = id, weights = siptw * sipcw_str_nonlag)
+fg_cox_at_siptw_sipcw_str_nonlag <- coxph(Surv(fgstart, fgstop, fgstatus) ~ trt_dummy,
+                                        weight = fgwt, 
+                                        data = fg_data,
+                                        cluster = id,
+                                        robust = TRUE)
 
-ph <- cox.zph(cox_at_siptw_sipcw_str_nonlag, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
+ph <- cox.zph(fg_cox_at_siptw_sipcw_str_nonlag, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
 ph
 
-png(filename = 'cox_at_siptw_sipcw_str_nonlag_ph.png', width = 3000, height = 3000, res = 500)
+png(filename = 'fg_cox_at_siptw_sipcw_str_nonlag_ph.png', width = 3000, height = 3000, res = 500)
 plot(ph)
 dev.off()
 
-summary(cox_at_siptw_sipcw_str_nonlag)
-saveRDS(cox_at_siptw_sipcw_str_nonlag, file = paste(path_results, 'cox_at_siptw_sipcw_str_nonlag.rds', sep = '/'))
+summary(fg_cox_at_siptw_sipcw_str_nonlag)
+saveRDS(fg_cox_at_siptw_sipcw_str_nonlag, file = paste(path_final_res, 'fg_cox_at_siptw_sipcw_str_nonlag.rds', sep = '/'))
+
+rm(fg_data, fg_cox_at_siptw_sipcw_str_nonlag)
 
 ## POOLED NON-LAGGED WEIGHTS 
 # unstab
-cox_at_ipcw_pl_nonlag <- coxph(
-  Surv(Tstart, Tstop, event_at_tstop) ~ trt_dummy,
-  data = cohort_analytic_at,
-  weights = ipcw_pl_nonlag,
-  cluster = id,
-  robust = TRUE
-)
+fg_data <- finegray(Surv(etime, event) ~ trt_dummy + id, data = cohort_analytic_at, id = id, weights = ipcw_pl_nonlag)
+fg_cox_at_ipcw_pl_nonlag <- coxph(Surv(fgstart, fgstop, fgstatus) ~ trt_dummy,
+                                   weight = fgwt, 
+                                   data = fg_data,
+                                   cluster = id,
+                                   robust = TRUE)
 
-ph <- cox.zph(cox_at_ipcw_pl_nonlag, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
+ph <- cox.zph(fg_cox_at_ipcw_pl_nonlag, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
 ph
 
-png(filename = 'cox_at_ipcw_pl_nonlag_ph.png', width = 3000, height = 3000, res = 500)
+png(filename = 'fg_cox_at_ipcw_pl_nonlag_ph.png', width = 3000, height = 3000, res = 500)
 plot(ph)
 dev.off()
 
-summary(cox_at_ipcw_pl_nonlag)
-saveRDS(cox_at_ipcw_pl_nonlag, file = paste(path_results, 'cox_at_ipcw_pl_nonlag.rds', sep = '/'))
+summary(fg_cox_at_ipcw_pl_nonlag)
+saveRDS(fg_cox_at_ipcw_pl_nonlag, file = paste(path_final_res, 'fg_cox_at_ipcw_pl_nonlag.rds', sep = '/'))
+
+rm(fg_data, fg_cox_at_ipcw_pl_nonlag)
 
 # stab
-cox_at_sipcw_pl_nonlag <- coxph(
-  Surv(Tstart, Tstop, event_at_tstop) ~ trt_dummy,
-  data = cohort_analytic_at,
-  weights = sipcw_pl_nonlag,
-  cluster = id,
-  robust = TRUE
-)
+fg_data <- finegray(Surv(etime, event) ~ trt_dummy + id, data = cohort_analytic_at, id = id, weights = sipcw_pl_nonlag)
+fg_cox_at_sipcw_pl_nonlag <- coxph(Surv(fgstart, fgstop, fgstatus) ~ trt_dummy,
+                                  weight = fgwt, 
+                                  data = fg_data,
+                                  cluster = id,
+                                  robust = TRUE)
 
-ph <- cox.zph(cox_at_sipcw_pl_nonlag, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
+ph <- cox.zph(fg_cox_at_sipcw_pl_nonlag, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
 ph
 
-png(filename = 'cox_at_sipcw_pl_nonlag_ph.png', width = 3000, height = 3000, res = 500)
+png(filename = 'fg_cox_at_sipcw_pl_nonlag_ph.png', width = 3000, height = 3000, res = 500)
 plot(ph)
 dev.off()
 
-summary(cox_at_sipcw_pl_nonlag)
-saveRDS(cox_at_sipcw_pl_nonlag, file = paste(path_results, 'cox_at_sipcw_pl_nonlag.rds', sep = '/'))
+summary(fg_cox_at_sipcw_pl_nonlag)
+saveRDS(fg_cox_at_sipcw_pl_nonlag, file = paste(path_final_res, 'fg_cox_at_sipcw_pl_nonlag.rds', sep = '/'))
+
+rm(fg_data, fg_cox_at_sipcw_pl_nonlag)
 
 # iptw
-cox_at_iptw_ipcw_pl_nonlag <- coxph(
-  Surv(Tstart, Tstop, event_at_tstop) ~ trt_dummy,
-  data = cohort_analytic_at,
-  weights = iptw * ipcw_pl_nonlag,
-  cluster = id,
-  robust = TRUE
-)
+fg_data <- finegray(Surv(etime, event) ~ trt_dummy + id, data = cohort_analytic_at, id = id, weights = iptw * ipcw_pl_nonlag)
+fg_cox_at_iptw_ipcw_pl_nonlag <- coxph(Surv(fgstart, fgstop, fgstatus) ~ trt_dummy,
+                                  weight = fgwt, 
+                                  data = fg_data,
+                                  cluster = id,
+                                  robust = TRUE)
 
-ph <- cox.zph(cox_at_iptw_ipcw_pl_nonlag, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
+ph <- cox.zph(fg_cox_at_iptw_ipcw_pl_nonlag, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
 ph
 
-png(filename = 'cox_at_iptw_ipcw_pl_nonlag_ph.png', width = 3000, height = 3000, res = 500)
+png(filename = 'fg_cox_at_iptw_ipcw_pl_nonlag_ph.png', width = 3000, height = 3000, res = 500)
 plot(ph)
 dev.off()
 
-summary(cox_at_iptw_ipcw_pl_nonlag)
-saveRDS(cox_at_iptw_ipcw_pl_nonlag, file = paste(path_results, 'cox_at_iptw_ipcw_pl_nonlag.rds', sep = '/'))
+summary(fg_cox_at_iptw_ipcw_pl_nonlag)
+saveRDS(fg_cox_at_iptw_ipcw_pl_nonlag, file = paste(path_final_res, 'fg_cox_at_iptw_ipcw_pl_nonlag.rds', sep = '/'))
+
+rm(fg_data, fg_cox_at_iptw_ipcw_pl_nonlag)
 
 # siptw
-cox_at_siptw_sipcw_pl_nonlag <- coxph(
-  Surv(Tstart, Tstop, event_at_tstop) ~ trt_dummy,
-  data = cohort_analytic_at,
-  weights = siptw * sipcw_pl_nonlag,
-  cluster = id,
-  robust = TRUE
-)
+fg_data <- finegray(Surv(etime, event) ~ trt_dummy + id, data = cohort_analytic_at, id = id, weights = siptw * sipcw_pl_nonlag)
+fg_cox_at_siptw_sipcw_pl_nonlag <- coxph(Surv(fgstart, fgstop, fgstatus) ~ trt_dummy,
+                                       weight = fgwt, 
+                                       data = fg_data,
+                                       cluster = id,
+                                       robust = TRUE)
 
-ph <- cox.zph(cox_at_siptw_sipcw_pl_nonlag, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
+ph <- cox.zph(fg_cox_at_siptw_sipcw_pl_nonlag, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
 ph
 
-png(filename = 'cox_at_siptw_sipcw_pl_nonlag_ph.png', width = 3000, height = 3000, res = 500)
+png(filename = 'fg_cox_at_siptw_sipcw_pl_nonlag_ph.png', width = 3000, height = 3000, res = 500)
 plot(ph)
 dev.off()
 
-summary(cox_at_siptw_sipcw_pl_nonlag)
-saveRDS(cox_at_siptw_sipcw_pl_nonlag, file = paste(path_results, 'cox_at_siptw_sipcw_pl_nonlag.rds', sep = '/'))
+summary(fg_cox_at_siptw_sipcw_pl_nonlag)
+saveRDS(fg_cox_at_siptw_sipcw_pl_nonlag, file = paste(path_final_res, 'fg_cox_at_siptw_sipcw_pl_nonlag.rds', sep = '/'))
+
+rm(fg_data, fg_cox_at_siptw_sipcw_pl_nonlag)
 
 
 ## POOLED LAGGED WEIGHTS
 # unstab
-cox_at_ipcw_pl_lag <- coxph(
-  Surv(Tstart, Tstop, event_at_tstop) ~ trt_dummy,
-  data = cohort_analytic_at,
-  weights = ipcw_pl_lag,
-  cluster = id,
-  robust = TRUE
-)
+fg_data <- finegray(Surv(etime, event) ~ trt_dummy + id, data = cohort_analytic_at, id = id, weights = ipcw_pl_lag)
+fg_cox_at_ipcw_pl_lag <- coxph(Surv(fgstart, fgstop, fgstatus) ~ trt_dummy,
+                                  weight = fgwt, 
+                                  data = fg_data,
+                                  cluster = id,
+                                  robust = TRUE)
 
-ph <- cox.zph(cox_at_ipcw_pl_lag, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
+ph <- cox.zph(fg_cox_at_ipcw_pl_lag, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
 ph
 
-png(filename = 'cox_at_ipcw_pl_lag_ph.png', width = 3000, height = 3000, res = 500)
+png(filename = 'fg_cox_at_ipcw_pl_lag_ph.png', width = 3000, height = 3000, res = 500)
 plot(ph)
 dev.off()
 
-summary(cox_at_ipcw_pl_lag)
-saveRDS(cox_at_ipcw_pl_lag, file = paste(path_results, 'cox_at_ipcw_pl_lag.rds', sep = '/'))
+summary(fg_cox_at_ipcw_pl_lag)
+saveRDS(fg_cox_at_ipcw_pl_lag, file = paste(path_final_res, 'fg_cox_at_ipcw_pl_lag.rds', sep = '/'))
+
+rm(fg_data, fg_cox_at_ipcw_pl_lag)
 
 # stab
-cox_at_sipcw_pl_lag <- coxph(
-  Surv(Tstart, Tstop, event_at_tstop) ~ trt_dummy,
-  data = cohort_analytic_at,
-  weights = sipcw_pl_lag,
-  cluster = id,
-  robust = TRUE
-)
+fg_data <- finegray(Surv(etime, event) ~ trt_dummy + id, data = cohort_analytic_at, id = id, weights = sipcw_pl_lag)
+fg_cox_at_sipcw_pl_lag <- coxph(Surv(fgstart, fgstop, fgstatus) ~ trt_dummy,
+                               weight = fgwt, 
+                               data = fg_data,
+                               cluster = id,
+                               robust = TRUE)
 
-ph <- cox.zph(cox_at_sipcw_pl_lag, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
+ph <- cox.zph(fg_cox_at_sipcw_pl_lag, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
 ph
 
-png(filename = 'cox_at_sipcw_pl_lag_ph.png', width = 3000, height = 3000, res = 500)
+png(filename = 'fg_cox_at_sipcw_pl_lag_ph.png', width = 3000, height = 3000, res = 500)
 plot(ph)
 dev.off()
 
-summary(cox_at_sipcw_pl_lag)
-saveRDS(cox_at_sipcw_pl_lag, file = paste(path_results, 'cox_at_sipcw_pl_lag.rds', sep = '/'))
+summary(fg_cox_at_sipcw_pl_lag)
+saveRDS(fg_cox_at_sipcw_pl_lag, file = paste(path_final_res, 'fg_cox_at_sipcw_pl_lag.rds', sep = '/'))
+
+rm(fg_data, fg_cox_at_sipcw_pl_lag)
 
 # iptw
-cox_at_iptw_ipcw_pl_lag <- coxph(
-  Surv(Tstart, Tstop, event_at_tstop) ~ trt_dummy,
-  data = cohort_analytic_at,
-  weights = iptw * ipcw_pl_lag,
-  cluster = id,
-  robust = TRUE
-)
+fg_data <- finegray(Surv(etime, event) ~ trt_dummy + id, data = cohort_analytic_at, id = id, weights = iptw * ipcw_pl_lag)
+fg_cox_at_iptw_ipcw_pl_lag <- coxph(Surv(fgstart, fgstop, fgstatus) ~ trt_dummy,
+                               weight = fgwt, 
+                               data = fg_data,
+                               cluster = id,
+                               robust = TRUE)
 
-ph <- cox.zph(cox_at_iptw_ipcw_pl_lag, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
+ph <- cox.zph(fg_cox_at_iptw_ipcw_pl_lag, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
 ph
 
-png(filename = 'cox_at_iptw_ipcw_pl_lag.png', width = 3000, height = 3000, res = 500)
+png(filename = 'fg_cox_at_iptw_ipcw_pl_lag_ph.png', width = 3000, height = 3000, res = 500)
 plot(ph)
 dev.off()
 
-summary(cox_at_iptw_ipcw_pl_lag)
-saveRDS(cox_at_iptw_ipcw_pl_lag, file = paste(path_results, 'cox_at_iptw_ipcw_pl_lag.rds', sep = '/'))
+summary(fg_cox_at_iptw_ipcw_pl_lag)
+saveRDS(fg_cox_at_iptw_ipcw_pl_lag, file = paste(path_final_res, 'fg_cox_at_iptw_ipcw_pl_lag.rds', sep = '/'))
+
+rm(fg_data, fg_cox_at_iptw_ipcw_pl_lag)
 
 # siptw
-cox_at_siptw_sipcw_pl_lag <- coxph(
-  Surv(Tstart, Tstop, event_at_tstop) ~ trt_dummy,
-  data = cohort_analytic_at,
-  weights = siptw * sipcw_pl_lag,
-  cluster = id,
-  robust = TRUE
-)
+fg_data <- finegray(Surv(etime, event) ~ trt_dummy + id, data = cohort_analytic_at, id = id, weights = siptw * sipcw_pl_lag)
+fg_cox_at_siptw_sipcw_pl_lag <- coxph(Surv(fgstart, fgstop, fgstatus) ~ trt_dummy,
+                                    weight = fgwt, 
+                                    data = fg_data,
+                                    cluster = id,
+                                    robust = TRUE)
 
-ph <- cox.zph(cox_at_siptw_sipcw_pl_lag, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
+ph <- cox.zph(fg_cox_at_siptw_sipcw_pl_lag, transform="km", terms=TRUE, singledf=FALSE, global=TRUE) 
 ph
 
-png(filename = 'cox_at_siptw_sipcw_pl_lag_ph.png', width = 3000, height = 3000, res = 500)
+png(filename = 'fg_cox_at_siptw_sipcw_pl_lag_ph.png', width = 3000, height = 3000, res = 500)
 plot(ph)
 dev.off()
 
-summary(cox_at_siptw_sipcw_pl_lag)
-saveRDS(cox_at_siptw_sipcw_pl_lag, file = paste(path_results, 'cox_at_siptw_sipcw_pl_lag.rds', sep = '/'))
+summary(fg_cox_at_siptw_sipcw_pl_lag)
+saveRDS(fg_cox_at_siptw_sipcw_pl_lag, file = paste(path_final_res, 'fg_cox_at_siptw_sipcw_pl_lag.rds', sep = '/'))
+
+rm(fg_data, fg_cox_at_siptw_sipcw_pl_lag)
 
 #### DATAFRAME WITH INCIDENCE RATES FOR EACH MODEL ####
 
@@ -1024,5 +1067,5 @@ incidence_rates <- bind_rows(
 
 incidence_rates %<>% relocate(model)
 
-write_xlsx(incidence_rates, paste(path_results, 'incidence_rates.xlsx', sep ='/'))
+write_xlsx(incidence_rates, paste(path_final_res, 'incidence_rates.xlsx', sep ='/'))
 

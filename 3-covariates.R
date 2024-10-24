@@ -2,17 +2,12 @@
 ##
 ## Program: 3. Define covariates
 ##
-## Purpose: Update the cohort with values of covariates and comorbidities at study entry 
-## and at the quartiles of the censoring distribution ('cohort_with_covariates'). 
-## Censoring for the distribution of censoring times can be for any reason, 
-# i.e. event, death, switch, discontinuation, linkage end, departure from CPRD...
-## which is captured in at_exit_date. 
-##
-## Comorbidities are assessed from both CPRD and HES. 
+## Purpose: Clean and format covariates, and create dataframe containing date of 
+## first dx for comorbidities. Comorbidities are assessed from both CPRD and HES. 
 ##
 ## Author: Gwen Aubrac
 ##
-## Date Created: 2024-07-22
+## Date Created: 2024-10-15
 ##
 ## ---------------------------
 ##
@@ -30,9 +25,16 @@
 ##
 ## ---------------------------
 
-# analysis: main, flex_grace_period, or 90_day_grace_period
+#### SPECIFY ANALYSIS ####
 
-analysis <- ''
+# cohort: antidepressant, antihypertensive, antidiabetic
+exposure <- 'antihypertensive'
+
+# outcome: all-cause mortality, suicidal ideation
+outcome <- 'all-cause mortality'
+
+# analysis: main, flexible_grace_period, 90_day_grace_period
+analysis <- 'main'
 
 #### LOAD PACKAGES ####
 
@@ -47,30 +49,28 @@ library(data.table)
 
 #### DEFINE PATHS ####
 
-if (analysis == 'main' | analysis == '') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/main" 
-} else if (analysis == 'flex_grace_period') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/sensitivity/flex_grace_period" 
-} else if (analysis == '90_day_grace_period') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/sensitivity/90_day_grace_period" 
-} 
+path_intermediate_res_main <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, 'main', 'intermediate', sep = '/')
+path_intermediate_res <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, analysis, 'intermediate', sep = '/')
 
-path_main <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/main" 
 path_cprdA <- "Z:/EPI/Protocol 24_004042/dataA" 
 path_cprdB <- "Z:/EPI/Protocol 24_004042/dataB" 
 path_cprdC <- "Z:/EPI/Protocol 24_004042/dataC (no followup)"
-path_comorb_cprd <- "Z:/EPI/Protocol 24_004042/Gwen/data/comorbidities/Aurum codes comorbidities"
-path_comorb_hes <- "Z:/EPI/Protocol 24_004042/Gwen/data/comorbidities/ICD codes comorbidities"
+
+path_comorb_cprd <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/data', exposure, 'comorbidities', 'Aurum code comorbidities', sep = '/')
+path_comorb_hes <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/data', exposure, 'comorbidities', 'ICD code comorbidities', sep = '/')
+
 path_linkage_1 <- 'Z:/EPI/Protocol 24_004042/Data linkage/Results/Aurum_linked/Final_pt1'
 path_linkage_2 <- 'Z:/EPI/Protocol 24_004042/Data linkage/Results/Aurum_linked/Final_pt2'
 
-cohort <- readRDS(file = paste(path_cohort, 'antidepressant_cohort_censored.rds', sep = '/'))
+cohort <- readRDS(file = paste(path_intermediate_res, 'cohort_censored.rds', sep = '/'))
 
-setwd(path_cohort)
+setwd(path_intermediate_res)
 
 cov_desc <- "cov_desc.txt"
 writeLines("Covariate description:", cov_desc)
 cat(paste("Date:", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), '\n'), file = cov_desc, append= TRUE)
+
+if (outcome == 'suicidal ideation') {outcome <- 'suicidal_ideation_self_harm'}
 
 #### YEAR OF ENTRY, AGE GROUP, ETHNICITY, AND DEPRIVATION ####
 
@@ -88,20 +88,39 @@ cohort %<>%
          month_year = as.factor(month_year))
 
 # age group
-cohort <- cohort %>% 
-  mutate (
-    age_group = dplyr::case_when(
-      age_at_entry >= 18 & age_at_entry < 25 ~ '18-24',
-      age_at_entry >= 25 & age_at_entry < 35 ~ '25-34',
-      age_at_entry >= 35 & age_at_entry < 45 ~ '35-44',
-      age_at_entry >= 45 & age_at_entry < 55 ~ '45-54',
-      age_at_entry >= 55 & age_at_entry < 65 ~ '55-64',
-      age_at_entry >= 65 & age_at_entry < 75 ~ '65-74',
-      age_at_entry >= 75 & age_at_entry < 85 ~ '75-84',
-      age_at_entry > 85 ~ '>85'
-    ),
-    age_group = factor(age_group, levels = c('18-24', '25-34', '35-44', '45-54', '55-64', '65-74', '75-84', '>85'))
-  )
+
+if (exposure == 'antidepressant') {
+  cohort <- cohort %>% 
+    mutate (
+      age_group = dplyr::case_when(
+        age_at_entry >= 18 & age_at_entry < 25 ~ '18-24',
+        age_at_entry >= 25 & age_at_entry < 35 ~ '25-34',
+        age_at_entry >= 35 & age_at_entry < 45 ~ '35-44',
+        age_at_entry >= 45 & age_at_entry < 55 ~ '45-54',
+        age_at_entry >= 55 & age_at_entry < 65 ~ '55-64',
+        age_at_entry >= 65 & age_at_entry < 75 ~ '65-74',
+        age_at_entry >= 75 & age_at_entry < 85 ~ '75-84',
+        age_at_entry > 85 ~ '>85'
+      ),
+      age_group = factor(age_group, levels = c('18-24', '25-34', '35-44', '45-54', '55-64', '65-74', '75-84', '>85'))
+    )
+}
+
+# fewer young people on antihypertensive, so let us merge the two younger age groups
+if (exposure == 'antihypertensive') {
+  cohort <- cohort %>% 
+    mutate (
+      age_group = dplyr::case_when(
+        age_at_entry >= 18 & age_at_entry < 45 ~ '18-44',
+        age_at_entry >= 45 & age_at_entry < 55 ~ '45-54',
+        age_at_entry >= 55 & age_at_entry < 65 ~ '55-64',
+        age_at_entry >= 65 & age_at_entry < 75 ~ '65-74',
+        age_at_entry >= 75 & age_at_entry < 85 ~ '75-84',
+        age_at_entry > 85 ~ '>85'
+      ),
+      age_group = factor(age_group, levels = c('18-44', '45-54', '55-64', '65-74', '75-84', '>85'))
+    )
+}
 
 summary(cohort$age_group)
 length(which(is.na(cohort$age_group)))
@@ -192,19 +211,19 @@ observation_filesA3 <- observation_filesA[114:189]
 gc()
 cohort_comorb_cprd <- data.frame()
 mclapply(observation_filesA1, filter_comorb)
-saveRDS(cohort_comorb_cprd, file = paste(path_cohort,  'cprd_comorb_A1.rds', sep='/'))
+saveRDS(cohort_comorb_cprd, file = paste(path_intermediate_res,  'cprd_comorb_A1.rds', sep='/'))
 rm(cohort_comorb_cprd)
 
 gc()
 cohort_comorb_cprd <- data.frame()
 mclapply(observation_filesA2, filter_comorb)
-saveRDS(cohort_comorb_cprd, file = paste(path_cohort,  'cprd_comorb_A2.rds', sep='/'))
+saveRDS(cohort_comorb_cprd, file = paste(path_intermediate_res,  'cprd_comorb_A2.rds', sep='/'))
 rm(cohort_comorb_cprd)
 
 gc()
 cohort_comorb_cprd <- data.frame()
 mclapply(observation_filesA3, filter_comorb)
-saveRDS(cohort_comorb_cprd, file = paste(path_cohort,  'cprd_comorb_A3.rds', sep='/'))
+saveRDS(cohort_comorb_cprd, file = paste(path_intermediate_res,  'cprd_comorb_A3.rds', sep='/'))
 rm(cohort_comorb_cprd)
 
 observation_filesB <- list.files(
@@ -221,19 +240,19 @@ observation_filesB3 <- observation_filesB[114:197]
 gc()
 cohort_comorb_cprd <- data.frame()
 mclapply(observation_filesB1, filter_comorb)
-saveRDS(cohort_comorb_cprd, file = paste(path_cohort, 'cprd_comorb_B1.rds', sep='/'))
+saveRDS(cohort_comorb_cprd, file = paste(path_intermediate_res, 'cprd_comorb_B1.rds', sep='/'))
 rm(cohort_comorb_cprd)
 
 gc()
 cohort_comorb_cprd <- data.frame()
 mclapply(observation_filesB2, filter_comorb)
-saveRDS(cohort_comorb_cprd, file = paste(path_cohort, 'cprd_comorb_B2.rds', sep='/'))
+saveRDS(cohort_comorb_cprd, file = paste(path_intermediate_res, 'cprd_comorb_B2.rds', sep='/'))
 rm(cohort_comorb_cprd)
 
 gc()
 cohort_comorb_cprd <- data.frame()
 mclapply(observation_filesB3, filter_comorb)
-saveRDS(cohort_comorb_cprd, file = paste(path_cohort, 'cprd_comorb_B3.rds', sep='/'))
+saveRDS(cohort_comorb_cprd, file = paste(path_intermediate_res, 'cprd_comorb_B3.rds', sep='/'))
 rm(cohort_comorb_cprd)
 
 observation_filesC <- list.files(
@@ -246,17 +265,17 @@ observation_filesC <- list.files(
 gc()
 cohort_comorb_cprd <- data.frame()
 mclapply(observation_filesC, filter_comorb)
-saveRDS(cohort_comorb_cprd, file = paste(path_cohort, 'cprd_comorb_C.rds', sep='/'))
+saveRDS(cohort_comorb_cprd, file = paste(path_intermediate_res, 'cprd_comorb_C.rds', sep='/'))
 
 rm(cohort_comorb_cprd)
 
-cprd_comorb_A1 <- readRDS(file = paste(path_main, 'cprd_comorb_A1.rds', sep = '/'))
-cprd_comorb_A2 <- readRDS(file = paste(path_main, 'cprd_comorb_A2.rds', sep = '/'))
-cprd_comorb_A3 <- readRDS(file = paste(path_main, 'cprd_comorb_A3.rds', sep = '/'))
-cprd_comorb_B1 <- readRDS(file = paste(path_main, 'cprd_comorb_B1.rds', sep = '/'))
-cprd_comorb_B2 <- readRDS(file = paste(path_main, 'cprd_comorb_B2.rds', sep = '/'))
-cprd_comorb_B3 <- readRDS(file = paste(path_main, 'cprd_comorb_B3.rds', sep = '/'))
-cprd_comorb_C <- readRDS(file = paste(path_main, 'cprd_comorb_C.rds', sep = '/'))
+cprd_comorb_A1 <- readRDS(file = paste(path_intermediate_res_main, 'cprd_comorb_A1.rds', sep = '/'))
+cprd_comorb_A2 <- readRDS(file = paste(path_intermediate_res_main, 'cprd_comorb_A2.rds', sep = '/'))
+cprd_comorb_A3 <- readRDS(file = paste(path_intermediate_res_main, 'cprd_comorb_A3.rds', sep = '/'))
+cprd_comorb_B1 <- readRDS(file = paste(path_intermediate_res_main, 'cprd_comorb_B1.rds', sep = '/'))
+cprd_comorb_B2 <- readRDS(file = paste(path_intermediate_res_main, 'cprd_comorb_B2.rds', sep = '/'))
+cprd_comorb_B3 <- readRDS(file = paste(path_intermediate_res_main, 'cprd_comorb_B3.rds', sep = '/'))
+cprd_comorb_C <- readRDS(file = paste(path_intermediate_res_main, 'cprd_comorb_C.rds', sep = '/'))
 
 cohort_comorb_cprd <- rbind(cprd_comorb_A1, cprd_comorb_A2, cprd_comorb_A3, cprd_comorb_B1, cprd_comorb_B2, cprd_comorb_B3, cprd_comorb_C)
 cohort_comorb_cprd <- merge(cohort_comorb_cprd, comorb_cprd, by.x = 'medical_code', by.y = 'MedCodeId')
@@ -384,14 +403,37 @@ first_comorb <- first_comorb %>%
   summarise(comorb_date = min(date)) %>% 
   ungroup()
 
-saveRDS(first_comorb, file = paste(path_cohort, 'first_comorb.rds', sep = '/'))
+saveRDS(first_comorb, file = paste(path_intermediate_res, 'first_comorb.rds', sep = '/'))
+
+# for subgroup analyses additionally save in subgroup folders
+saveRDS(first_comorb, file = paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, 'male', 'intermediate',  'first_comorb.rds', sep = '/'))
+saveRDS(first_comorb, file = paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, 'female', 'intermediate', 'first_comorb.rds', sep = '/'))
+saveRDS(first_comorb, file = paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, 'young', 'intermediate',  'first_comorb.rds', sep = '/'))
+saveRDS(first_comorb, file = paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, 'old', 'intermediate',  'first_comorb.rds', sep = '/'))
+saveRDS(first_comorb, file = paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, '2019', 'intermediate',  'first_comorb.rds', sep = '/'))
+saveRDS(first_comorb, file = paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, '2020', 'intermediate',  'first_comorb.rds', sep = '/'))
+saveRDS(first_comorb, file = paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, '2021', 'intermediate',  'first_comorb.rds', sep = '/'))
+saveRDS(first_comorb, file = paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, '2022', 'intermediate',  'first_comorb.rds', sep = '/'))
+
+if (exposure == 'antidepressant') {
+  saveRDS(first_comorb, file = paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, 'depressed', 'intermediate',  'first_comorb.rds', sep = '/'))
+  saveRDS(first_comorb, file = paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, 'not_depressed', 'intermediate',  'first_comorb.rds', sep = '/'))
+}
 
 rm(first_comorb, comorb_cprd, comorb_hes, cohort_comorb_cprd, cohort_comorb_hes_epi, cohort_comorb_hes_hosp, cohort_ids)
 
 #### FORMAT COVARIATE DATA ####
 
-#trt_dummy = 0 (reference exposure group, here SNRI) and trt_dummy = 1 (comparator exposure group, here SSRI)
-cohort$trt_dummy <- if_else (cohort$trt == 'ssri', 1, 0)
+#trt_dummy = 0 (reference exposure group) and trt_dummy = 1 (comparator exposure group)
+
+if (exposure == 'antidepressant') {
+  cohort$trt_dummy <- if_else (cohort$trt == 'ssri', 1, 0)
+}
+
+if (exposure == 'antihypertensive') {
+  cohort$trt_dummy <- if_else (cohort$trt == 'arb', 1, 0)
+}
+
 cohort %<>% mutate(trt_dummy = as.factor(trt_dummy), trt = as.factor(trt))
 
 # create vectors with names for all user-specified covariates and comorbidities
@@ -416,10 +458,68 @@ for (i in 1:length(comorb_cprd_files)) {
 base_comorb
 dec_comorb
 
-saveRDS(covariates, file = paste(path_cohort, 'covariates.rds', sep = '/'))
-saveRDS(comorbidities, file = paste(path_cohort, 'comorbidities.rds', sep = '/'))
-saveRDS(base_comorb, file = paste(path_cohort, 'base_comorb.rds', sep = '/'))
-saveRDS(dec_comorb, file = paste(path_cohort, 'dec_comorb.rds', sep = '/'))
+# remove covariates that violate positivity assumption (too few counts)
+comorbidities <- comorbidities[!comorbidities %in% c('hypocalcemia', 'hypomagnesemia', 'acute_renal_disease', 'cardiomyopathy', 'hypokalemia')]
+
+base_comorb <- base_comorb[!base_comorb %in% c('hypocalcemia_base', 'hypomagnesemia_base', 'acute_renal_disease_base', 'caridomyopathy_base', 'hypokalemia_base')]
+
+dec_comorb <- dec_comorb[!dec_comorb %in% c(
+  'hypocalcemia_d1',
+  'hypomagnesemia_d1',
+  'acute_renal_disease_d1',
+  'cardiomyopathy_d1',
+  'hypokalemia_d1',
+  'hypocalcemia_d2',
+  'hypomagnesemia_d2',
+  'acute_renal_disease_d2',
+  'cardiomyopathy_d2',
+  'hypokalemia_d2',
+  'hypocalcemia_d3',
+  'hypomagnesemia_d3',
+  'acute_renal_disease_d3',
+  'cardiomyopathy_d3',
+  'hypokalemia_d3',
+  'hypocalcemia_d4',
+  'hypomagnesemia_d4',
+  'acute_renal_disease_d4',
+  'cardiomyopathy_d4',
+  'hypokalemia_d4',
+  'hypocalcemia_d5',
+  'hypomagnesemia_d5',
+  'acute_renal_disease_d5',
+  'cardiomyopathy_d5',
+  'hypokalemia_d5',
+  'hypocalcemia_d6',
+  'hypomagnesemia_d6',
+  'acute_renal_disease_d6',
+  'cardiomyopathy_d6',
+  'hypokalemia_d6',
+  'hypocalcemia_d7',
+  'hypomagnesemia_d7',
+  'acute_renal_disease_d7',
+  'cardiomyopathy_d7',
+  'hypokalemia_d7',
+  'hypocalcemia_d8',
+  'hypomagnesemia_d8',
+  'acute_renal_disease_d8',
+  'cardiomyopathy_d8',
+  'hypokalemia_d8',
+  'hypocalcemia_d9',
+  'hypomagnesemia_d9',
+  'acute_renal_disease_d9',
+  'cardiomyopathy_d9',
+  'hypokalemia_d9'
+)]
+
+# remove baseline event
+comorbidities <- comorbidities[!comorbidities %in% c(outcome)]
+base_comorb <- base_comorb[!base_comorb %in% c(paste(outcome, '_base', sep = ''))]
+dec_comorb <- dec_comorb[!dec_comorb %in% c(paste(outcome, '_d', 1:9, sep = ''))]
+
+saveRDS(covariates, file = paste(path_intermediate_res, 'covariates.rds', sep = '/'))
+saveRDS(comorbidities, file = paste(path_intermediate_res, 'comorbidities.rds', sep = '/'))
+saveRDS(base_comorb, file = paste(path_intermediate_res, 'base_comorb.rds', sep = '/'))
+saveRDS(dec_comorb, file = paste(path_intermediate_res, 'dec_comorb.rds', sep = '/'))
 
 # remove empty factor levels
 cohort$deprivation <- droplevels(cohort$deprivation)
@@ -451,5 +551,5 @@ cohort %<>%
   mutate(ethnicity = if_else(ethnicity == 'Unknown', 'Unknown', if_else(ethnicity == 'White', 'White', 'Non-white')),
          ethnicity = as.factor(ethnicity))
 
-saveRDS(cohort, file = paste(path_cohort, 'antidepressant_cohort_covariates.rds', sep='/'))
+saveRDS(cohort, file = paste(path_intermediate_res, 'cohort_covariates.rds', sep='/'))
 

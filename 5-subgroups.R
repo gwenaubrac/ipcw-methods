@@ -10,7 +10,7 @@
 ##
 ## Author: Gwen Aubrac
 ##
-## Date Created: 2024-07-09
+## Date Created: 2024-10-15
 ##
 ## ---------------------------
 ##
@@ -19,54 +19,80 @@
 ##
 ## ---------------------------
 
+#### SPECIFY ANALYSIS ####
+
+# cohort: antidepressant, antihypertensive, antidiabetic
+exposure <- 'antihypertensive'
+
+# outcome: all-cause mortality, suicidal ideation
+outcome <- 'all-cause mortality'
+
 #### LOAD PACKAGES ####
 
 library(dplyr)
 
 #### DEFINE PATHS ####
 
-path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort"
-cohort <- readRDS(file = paste(path_cohort, 'antidepressant_cohort_outcome.rds', sep = '/'))
+path_intermediate_res_main <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, 'main', 'intermediate', sep = '/')
+cohort <- readRDS(file = paste(path_intermediate_res_main, 'cohort_update_cov.rds', sep = '/'))
+
+path_res <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, sep = '/')
 
 subgroup_male <- cohort %>% 
   filter (sex == 'Male')
-saveRDS(subgroup_male, file = paste(path_cohort, 'subgroup', 'male', 'antidepressant_cohort_covariates.rds', sep= '/'))
+saveRDS(subgroup_male, file = paste(path_res, 'male', 'intermediate', 'cohort_update_cov.rds', sep= '/'))
 
 subgroup_female <- cohort %>% 
   filter (sex == 'Female')
-saveRDS(subgroup_female, file = paste(path_cohort, 'subgroup', 'female', 'antidepressant_cohort_covariates.rds', sep= '/'))
+saveRDS(subgroup_female, file = paste(path_res, 'female', 'intermediate', 'cohort_update_cov.rds', sep= '/'))
 
 subgroup_young <- cohort %>% 
   filter (age_at_entry < 65)
-saveRDS(subgroup_young, file = paste(path_cohort, 'subgroup', 'young', 'antidepressant_cohort_covariates.rds', sep= '/'))
+saveRDS(subgroup_young, file = paste(path_res, 'young', 'intermediate', 'cohort_update_cov.rds', sep= '/'))
 
 subgroup_old <- cohort %>% 
   filter (age_at_entry >= 65)
-saveRDS(subgroup_old, file = paste(path_cohort, 'subgroup', 'old', 'antidepressant_cohort_covariates.rds', sep= '/'))
+saveRDS(subgroup_old, file = paste(path_res, 'old', 'intermediate', 'cohort_update_cov.rds', sep= '/'))
 
 subgroup_2019 <- cohort %>% 
   filter (year == 2019)
-saveRDS(subgroup_2019, file = paste(path_cohort, 'subgroup', '2019', 'antidepressant_cohort_covariates.rds', sep= '/'))
+saveRDS(subgroup_2019, file = paste(path_res, '2019', 'intermediate', 'cohort_update_cov.rds', sep= '/'))
 
 subgroup_2020 <- cohort %>% 
   filter (year == 2020)
-saveRDS(subgroup_2020, file = paste(path_cohort, 'subgroup', '2020', 'antidepressant_cohort_covariates.rds', sep= '/'))
+saveRDS(subgroup_2020, file = paste(path_res, '2020', 'intermediate', 'cohort_update_cov.rds', sep= '/'))
 
 subgroup_2021 <- cohort %>% 
   filter (year == 2021)
-saveRDS(subgroup_2021, file = paste(path_cohort, 'subgroup', '2021', 'antidepressant_cohort_covariates.rds', sep= '/'))
+saveRDS(subgroup_2021, file = paste(path_res, '2021', 'intermediate', 'cohort_update_cov.rds', sep= '/'))
 
 subgroup_2022 <- cohort %>% 
   filter (year == 2022)
-saveRDS(subgroup_2022, file = paste(path_cohort, 'subgroup', '2022', 'antidepressant_cohort_covariates.rds', sep= '/'))
+saveRDS(subgroup_2022, file = paste(path_res, '2022', 'intermediate', 'cohort_update_cov.rds', sep= '/'))
 
-subgroup_depressed <- cohort %>% 
-  filter (depression_base == 1)
-saveRDS(subgroup_depressed, file = paste(path_cohort, 'subgroup', 'depressed', 'antidepressant_cohort_covariates.rds', sep= '/'))
+if (exposure == 'antidepressant') {
+  subgroup_depressed <- cohort %>% 
+    filter (depression_base == 1)
+  saveRDS(subgroup_depressed, file = paste(path_res, 'depressed', 'intermediate', 'cohort_update_cov.rds', sep= '/'))
+  
+  subgroup_not_depressed <- cohort %>% 
+    filter (depression_base == 0)
+  saveRDS(subgroup_not_depressed, file = paste(path_res, 'not_depressed', 'intermediate', 'cohort_update_cov.rds', sep= '/'))
 
-subgroup_not_depressed <- cohort %>% 
-  filter (depression_base == 0)
-saveRDS(subgroup_not_depressed, file = paste(path_cohort, 'subgroup', 'not_depressed', 'antidepressant_cohort_covariates.rds', sep= '/'))
+  rm(subgroup_depressed, subgroup_not_depressed)
+  }
+
+if (exposure == 'antihypertensive') {
+  subgroup_hypertensive <- cohort %>% 
+    filter (hypertension_base == 1)
+  saveRDS(subgroup_hypertensive, file = paste(path_res, 'hypertensive', 'cohort_update_cov.rds', sep= '/'))
+  
+  subgroup_not_hypertensive <- cohort %>% 
+    filter (hypertension_base == 0)
+  saveRDS(subgroup_not_hypertensive, file = paste(path_res, 'not_hypertensive', 'cohort_update_cov.rds', sep= '/'))
+
+  rm(subgroup_hypertensive, subgroup_not_hypertensive)
+  }
 
 rm(subgroup_male, subgroup_female, subgroup_young, subgroup_old, subgroup_2019, subgroup_2020, subgroup_2021, subgroup_2022)
-rm(subgroup_depressed, subgroup_not_depressed)
+

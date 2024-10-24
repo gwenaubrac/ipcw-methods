@@ -6,13 +6,18 @@
 ##
 ## Author: Gwen Aubrac
 ##
-## Date Created: 2024-07-22
+## Date Created: 2024-10-15
 ##
 ## ---------------------------
 ##
 ## Notes:
 ##
 ## ---------------------------
+
+#### SPECIFY ANALYSIS ####
+
+# cohort: antidepressant, antihypertensive, antidiabetic
+exposure <- 'antidepressant'
 
 #### LOAD PACKAGES ####
 
@@ -26,14 +31,14 @@ library(ggplot2)
 
 #### DEFINE PATHS ####
 
-path_main <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/main"
-path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/sensitivity/90_day_grace_period"
-cohort <- readRDS(file = paste(path_main, 'antidepressant_cohort.rds', sep = '/'))
+path_intermediate_res_main <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, 'all-cause mortality', 'main', 'intermediate', sep = '/')
+path_intermediate_res <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, 'all-cause mortality', '90_day_grace_period', 'intermediate', sep = '/')
+cohort <- readRDS(file = paste(path_intermediate_res_main, 'cohort_creation.rds', sep = '/'))
 study_follow_up_end = ymd(20240331) # end of follow-up
 
-setwd(path_cohort)
+setwd(path_intermediate_res)
 
-censor_desc <- "censor_desc.txt"
+censor_desc <- "censor_desc_90_days.txt"
 writeLines("Censoring description:", censor_desc)
 cat(paste("Date:", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), '\n'), file = censor_desc, append= TRUE)
 
@@ -45,7 +50,7 @@ grace_period <- 90
 #### CENSORING DUE TO TREATMENT DISCONTINUATION ####
 
 # dataframe with number of days between end of rx supply and date of next rx
-trt_supply <- readRDS(file = paste(path_main, 'trt_supply_raw.rds', sep = '/'))
+trt_supply <- readRDS(file = paste(path_intermediate_res_main, 'trt_supply_raw.rds', sep = '/'))
 
 ## Define scenarios for treatment discontinuation
 # 1. A patient had only 1 refill (single refill)
@@ -128,4 +133,4 @@ disc_dates %<>% select (id, disc_date)
 cohort <- merge(cohort, disc_dates, by = 'id', all.x = TRUE)
 
 rm(trt_supply, disc_dates, last_disc_dates)
-saveRDS(cohort, file = paste(path_cohort, 'antidepressant_cohort_censored.rds', sep='/'))
+saveRDS(cohort, file = paste(path_intermediate_res, 'cohort_censored.rds', sep='/'))

@@ -6,7 +6,7 @@
 ##
 ## Author: Gwen Aubrac
 ##
-## Date Created: 2024/10/09
+## Date Created: 2024/10/15
 ##
 ## ---------------------------
 ##
@@ -14,11 +14,18 @@
 ##
 ## ---------------------------
 
-# analysis: flex_grace_period, 90_day_grace_period
-# male, female, young, old, 2019, 2020, 2021, 2022
-# depressed, not_depressed
+#### SPECIFY ANALYSIS ####
 
-analysis <- ''
+# cohort: antidepressant, antihypertensive, antidiabetic
+exposure <- 'antihypertensive'
+
+# outcome: all-cause mortality, suicidal ideation
+outcome <- 'all-cause mortality'
+
+# analysis: main, flexible_grace_period, 90_day_grace_period, male, female
+# young, old, 2019, 2020, 2021, 2022
+# depressed, not_depressed
+analysis <- 'main'
 
 #### LOAD PACKAGES ####
 
@@ -36,56 +43,16 @@ options(scipen = 999)
 
 #### DEFINE PATHS ####
 
-path_main <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/main" 
+path_intermediate_res_main <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, 'main', 'intermediate', sep = '/')
+path_intermediate_res <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, analysis, 'intermediate', sep = '/')
+path_final_res <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, analysis, 'final', sep = '/')
+path_vis <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, analysis, 'visualization', sep = '/')
 
-if (analysis == 'main' | analysis == '') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/main" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/main" 
-} else if (analysis == 'male') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/male" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/male" 
-} else if (analysis == 'female') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/female" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/female" 
-} else if (analysis == 'young') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/young" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/young" 
-} else if (analysis == 'old') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/old" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/old" 
-} else if (analysis == '2019') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/2019" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/2019" 
-} else if (analysis == '2020') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/2020" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/2020" 
-} else if (analysis == '2021') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/2021" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/2021" 
-} else if (analysis == '2022') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/2022" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/2022" 
-} else if (analysis == 'flex_grace_period') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/sensitivity/flex_grace_period" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/sensitivity/flex_grace_period" 
-} else if (analysis == '90_day_grace_period') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/sensitivity/90_day_grace_period" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/sensitivity/90_day_grace_period" 
-} else if (analysis == 'depressed') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/depressed" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/depressed" 
-} else if (analysis == 'not_depressed') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/not_depressed" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/not_depressed" 
-} 
-
-path_vis <- "Z:/EPI/Protocol 24_004042/Gwen/results/visualization"
-
-cohort <- readRDS(file = paste(path_cohort, 'antidepressant_cohort_iptw.rds', sep = '/'))
-covariates <- readRDS(file = paste(path_main, 'covariates.rds', sep = '/'))
-comorbidities <- readRDS(file = paste(path_main, 'comorbidities.rds', sep = '/'))
-base_comorb <- readRDS(file = paste(path_main, 'base_comorb.rds', sep = '/'))
-dec_comorb <- readRDS(file = paste(path_main, 'dec_comorb.rds', sep = '/'))
+cohort <- readRDS(file = paste(path_intermediate_res, 'cohort_iptw.rds', sep = '/'))
+covariates <- readRDS(file = paste(path_intermediate_res_main, 'covariates.rds', sep = '/'))
+comorbidities <- readRDS(file = paste(path_intermediate_res_main, 'comorbidities.rds', sep = '/'))
+base_comorb <- readRDS(file = paste(path_intermediate_res_main, 'base_comorb.rds', sep = '/'))
+dec_comorb <- readRDS(file = paste(path_intermediate_res_main, 'dec_comorb.rds', sep = '/'))
 
 # prepare data
 
@@ -223,7 +190,7 @@ saveRDS(covscoef, file = paste(path_vis, 'covsbyreg.xlsx', sep = '/'))
 
 #### PS COVARIATE COEFFICIENTS ####
 
-ps_formula <- readRDS(file = paste(path_results, 'iptw_model.rds', sep = '/'))
+ps_formula <- readRDS(file = paste(path_final_res, 'iptw_model.rds', sep = '/'))
 
 ps_model <- glm(ps_formula, family = binomial(link = 'logit'), data = cohort)
 
@@ -298,18 +265,18 @@ saveRDS(marg_bias_results, file = paste(path_vis, 'margbiasterms.xlsx', sep = '/
 
 #### COX MODEL RESULTS ####
 
-cox_itt <- readRDS(paste(path_results, 'cox_itt.rds', sep = '/'))
-cox_itt_iptw <- readRDS(paste(path_results, 'cox_itt_iptw.rds', sep = '/'))
-cox_at <- readRDS(paste(path_results, 'cox_at.rds', sep = '/'))
-cox_at_iptw <- readRDS(paste(path_results, 'cox_at_iptw.rds', sep = '/'))
-cox_at_ipcw_str_lag <- readRDS(paste(path_results, 'cox_at_ipcw_str_lag.rds', sep = '/'))
-cox_at_iptw_ipcw_str_lag <- readRDS(paste(path_results, 'cox_at_iptw_ipcw_str_lag.rds', sep = '/'))
-cox_at_ipcw_str_nonlag <- readRDS(paste(path_results, 'cox_at_ipcw_str_nonlag.rds', sep = '/'))
-cox_at_iptw_ipcw_str_nonlag <- readRDS(paste(path_results, 'cox_at_iptw_ipcw_str_nonlag.rds', sep = '/'))
-cox_at_ipcw_pl_nonlag <- readRDS(paste(path_results, 'cox_at_ipcw_pl_nonlag.rds', sep = '/'))
-cox_at_iptw_ipcw_pl_nonlag <- readRDS(paste(path_results, 'cox_at_iptw_ipcw_pl_nonlag.rds', sep = '/'))
-cox_at_ipcw_pl_lag <- readRDS(paste(path_results, 'cox_at_ipcw_pl_lag.rds', sep = '/'))
-cox_at_iptw_ipcw_pl_lag <- readRDS(paste(path_results, 'cox_at_iptw_ipcw_pl_lag.rds', sep = '/'))
+cox_itt <- readRDS(paste(path_final_res, 'cox_itt.rds', sep = '/'))
+cox_itt_iptw <- readRDS(paste(path_final_res, 'cox_itt_iptw.rds', sep = '/'))
+cox_at <- readRDS(paste(path_final_res, 'cox_at.rds', sep = '/'))
+cox_at_iptw <- readRDS(paste(path_final_res, 'cox_at_iptw.rds', sep = '/'))
+cox_at_ipcw_str_lag <- readRDS(paste(path_final_res, 'cox_at_ipcw_str_lag.rds', sep = '/'))
+cox_at_iptw_ipcw_str_lag <- readRDS(paste(path_final_res, 'cox_at_iptw_ipcw_str_lag.rds', sep = '/'))
+cox_at_ipcw_str_nonlag <- readRDS(paste(path_final_res, 'cox_at_ipcw_str_nonlag.rds', sep = '/'))
+cox_at_iptw_ipcw_str_nonlag <- readRDS(paste(path_final_res, 'cox_at_iptw_ipcw_str_nonlag.rds', sep = '/'))
+cox_at_ipcw_pl_nonlag <- readRDS(paste(path_final_res, 'cox_at_ipcw_pl_nonlag.rds', sep = '/'))
+cox_at_iptw_ipcw_pl_nonlag <- readRDS(paste(path_final_res, 'cox_at_iptw_ipcw_pl_nonlag.rds', sep = '/'))
+cox_at_ipcw_pl_lag <- readRDS(paste(path_final_res, 'cox_at_ipcw_pl_lag.rds', sep = '/'))
+cox_at_iptw_ipcw_pl_lag <- readRDS(paste(path_final_res, 'cox_at_iptw_ipcw_pl_lag.rds', sep = '/'))
 
 result_chart <- data.frame(matrix(nrow = 12, ncol = 3))
 colnames(result_chart) <- c('estimate', 'lower_ci', 'upper_ci')
@@ -372,7 +339,7 @@ saveRDS(result_chart, file = paste(path_vis, 'cox_results.xlsx', sep = '/'))
 
 #### INCIDENCE RATE RATIO RESULTS ####
 
-bootstrap_ci <- readRDS(paste(path_results, 'bootstrap_ci.rds', sep = '/'))
+bootstrap_ci <- readRDS(paste(path_final_res, 'bootstrap_ci.rds', sep = '/'))
 
 time <- data.frame(time = c(unique(cohort$month_year))) %>% 
   arrange(time)

@@ -9,7 +9,7 @@
 ##
 ## Author: Gwen Aubrac
 ##
-## Date Created: 2024-07-22
+## Date Created: 2024-10-15
 ##
 ## ---------------------------
 ##
@@ -19,6 +19,11 @@
 ## Algorithm used to define treatment duration was developed by Pauline Reynier at the Lady Davis Institute. 
 ##
 ## ---------------------------
+
+#### SPECIFY ANALYSIS ####
+
+# cohort: antidepressant, antihypertensive, antidiabetic
+exposure <- 'antidepressant'
 
 #### LOAD PACKAGES ####
 
@@ -35,15 +40,15 @@ library(writexl)
 
 #### DEFINE PATHS ####
 
-path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/main" 
-cohort <- readRDS(file = paste(path_cohort, 'antidepressant_cohort.rds', sep = '/'))
-rx_for_exposure <- readRDS(file = paste(path_cohort, 'rx_for_exposure.rds', sep ='/'))
+path_intermediate_res <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, 'all-cause mortality', 'main', 'intermediate', sep = '/')
+cohort <- readRDS(file = paste(path_intermediate_res, 'cohort_creation.rds', sep = '/'))
+rx_for_exposure <- readRDS(file = paste(path_intermediate_res, 'rx_for_exposure.rds', sep ='/'))
 
 study_start = ymd(20190101)
 study_end = ymd(20221231)
 study_follow_up_end = ymd(20240331)
 
-setwd(path_cohort)
+setwd(path_intermediate_res)
 censor_desc <- "censor_desc.txt"
 writeLines("Censoring description:", censor_desc)
 cat(paste("Date:", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), '\n'), file = censor_desc, append= TRUE)
@@ -382,14 +387,14 @@ summary_rx_duration <- rx_for_exposure %>%
   summarize(count = n()) %>% 
   arrange(desc(count))
 
-write_xlsx(summary_rx_duration, paste(path_cohort, 'summary_rx_duration.xlsx', sep ='/'))
-saveRDS(rx_for_exposure, file = paste(path_cohort, 'rx_for_exposure_with_duration.rds', sep='/'))
-rx_for_exposure <- readRDS(file = paste(path_cohort, 'rx_for_exposure_with_duration.rds', sep='/'))
+write_xlsx(summary_rx_duration, paste(path_intermediate_res, 'summary_rx_duration.xlsx', sep ='/'))
+saveRDS(rx_for_exposure, file = paste(path_intermediate_res, 'rx_for_exposure_with_duration.rds', sep='/'))
+rx_for_exposure <- readRDS(file = paste(path_intermediate_res, 'rx_for_exposure_with_duration.rds', sep='/'))
 
 #### DEFINE GRACE PERIOD ####
 
 # grace period: number of days for gap to be considered trt discontinuation
-#readRDS(paste(path_cohort, 'rx_for_exposure_with_duration.rds', sep='/'))
+#readRDS(paste(path_intermediate_res, 'rx_for_exposure_with_duration.rds', sep='/'))
 
 grace_period <- 30
 
@@ -417,8 +422,8 @@ trt_supply <- trt_supply %>%
           gap_in_supply = date - lag(supply_end), # gap between current rx and end of supply from previous rx
           max_refills = max(refill_number, na.rm = TRUE)) # total number of refills for each patient
 
-saveRDS(trt_supply, file = paste(path_cohort, 'trt_supply_raw.rds', sep='/'))
-# trt_supply <- readRDS(file = paste(path_cohort, 'trt_supply_raw.rds', sep = '/'))
+saveRDS(trt_supply, file = paste(path_intermediate_res, 'trt_supply_raw.rds', sep='/'))
+# trt_supply <- readRDS(file = paste(path_intermediate_res, 'trt_supply_raw.rds', sep = '/'))
 
 # examine distribution of rx dates
 summary(trt_supply$date)
@@ -504,4 +509,4 @@ disc_dates %<>% select (id, disc_date)
 cohort <- merge(cohort, disc_dates, by = 'id', all.x = TRUE)
 
 rm(trt_supply, disc_dates, last_disc_dates)
-saveRDS(cohort, file = paste(path_cohort, 'antidepressant_cohort_censored.rds', sep='/'))
+saveRDS(cohort, file = paste(path_intermediate_res, 'cohort_censored.rds', sep='/'))

@@ -12,7 +12,7 @@
 ##
 ## Author: Gwen Aubrac
 ##
-## Date Created: 2024-07-22
+## Date Created: 2024-10-15
 ##
 ## ---------------------------
 ##
@@ -27,11 +27,18 @@
 ## These covariates were removed from the IPTW and IPCW models. 
 ## ---------------------------
 
-# analysis: flex_grace_period, 90_day_grace_period
-# male, female, young, old, 2019, 2020, 2021, 2022
-# depressed, not_depressed
+#### SPECIFY ANALYSIS ####
 
-analysis <- ''
+# cohort: antidepressant, antihypertensive, antidiabetic
+exposure <- 'antihypertensive'
+
+# outcome: all-cause mortality, suicidal ideation
+outcome <- 'all-cause mortality'
+
+# analysis: main, flexible_grace_period, 90_day_grace_period, male, female
+# young, old, 2019, 2020, 2021, 2022
+# depressed, not_depressed
+analysis <- 'main'
 
 #### LOAD PACKAGES ####
 
@@ -45,69 +52,25 @@ library(purrr)
 
 #### DEFINE PATHS ####
 
-path_main <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/main" 
+path_intermediate_res <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, analysis, 'intermediate', sep = '/')
+path_final_res <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, analysis, 'final', sep = '/')
 
-if (analysis == 'main' | analysis == '') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/main" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/main" 
-} else if (analysis == 'male') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/male" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/male" 
-} else if (analysis == 'female') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/female" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/female" 
-} else if (analysis == 'young') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/young" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/young" 
-} else if (analysis == 'old') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/old" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/old" 
-} else if (analysis == '2019') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/2019" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/2019" 
-} else if (analysis == '2020') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/2020" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/2020" 
-} else if (analysis == '2021') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/2021" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/2021" 
-} else if (analysis == '2022') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/2022" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/2022" 
-} else if (analysis == 'flex_grace_period') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/sensitivity/flex_grace_period" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/sensitivity/flex_grace_period" 
-} else if (analysis == '90_day_grace_period') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/sensitivity/90_day_grace_period" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/sensitivity/90_day_grace_period" 
-} else if (analysis == 'depressed') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/depressed" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/depressed" 
-} else if (analysis == 'not_depressed') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/not_depressed" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/not_depressed" 
-} 
+cohort <- readRDS(file = paste(path_intermediate_res, 'cohort_iptw.rds', sep = '/'))
 
-
-path_comorb_cprd <- "Z:/EPI/Protocol 24_004042/Gwen/data/comorbidities/Aurum codes comorbidities" 
-
-cohort <- readRDS(file = paste(path_cohort, 'antidepressant_cohort_iptw.rds', sep = '/'))
-
-setwd(path_results) 
+setwd(path_intermediate_res) 
 ipcw_desc <- "ipcw_desc.txt"
 writeLines("IPCW description:", ipcw_desc)
 cat(paste("Date:", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), '\n'), file = ipcw_desc, append= TRUE)
 
-covariates <- readRDS(file = paste(path_main, 'covariates.rds', sep = '/'))
-comorbidities <- readRDS(file = paste(path_main, 'comorbidities.rds', sep = '/'))
-base_comorb <- readRDS(file = paste(path_main, 'base_comorb.rds', sep = '/'))
-dec_comorb <- readRDS(file = paste(path_main, 'dec_comorb.rds', sep = '/'))
+covariates <- readRDS(file = paste(path_intermediate_res, 'covariates.rds', sep = '/'))
+comorbidities <- readRDS(file = paste(path_intermediate_res, 'comorbidities.rds', sep = '/'))
+base_comorb <- readRDS(file = paste(path_intermediate_res, 'base_comorb.rds', sep = '/'))
+dec_comorb <- readRDS(file = paste(path_intermediate_res, 'dec_comorb.rds', sep = '/'))
 
 #### PREPARE DATA ####
 
 cohort_long <- cohort
 variables <- c(covariates, comorbidities)
-variables <- variables[!variables %in% c('hypocalcemia', 'hypomagnesemia', 'acute_renal_disease')] # too few counts/violate positivity assumption
 
 if (analysis == 'male' | analysis == 'female') {
   variables <- variables[!variables %in% c('sex')]
@@ -119,16 +82,8 @@ if (analysis == 'male' | analysis == 'female') {
 
 variables
 
+
 base_variables <- c(covariates, base_comorb)
-base_variables <- base_variables[!base_variables %in% c('hypocalcemia_d1', 'hypomagnesemia_d1', 'acute_renal_disease_d1',
-                                            'hypocalcemia_d2', 'hypomagnesemia_d2', 'acute_renal_disease_d1',
-                                            'hypocalcemia_d3', 'hypomagnesemia_d3', 'acute_renal_disease_d3',
-                                            'hypocalcemia_d4', 'hypomagnesemia_d4', 'acute_renal_disease_d4',
-                                            'hypocalcemia_d5', 'hypomagnesemia_d5', 'acute_renal_disease_d5',
-                                            'hypocalcemia_d6', 'hypomagnesemia_d6', 'acute_renal_disease_d6',
-                                            'hypocalcemia_d7', 'hypomagnesemia_d7', 'acute_renal_disease_d7',
-                                            'hypocalcemia_d8', 'hypomagnesemia_d8', 'acute_renal_disease_d8',
-                                            'hypocalcemia_d9', 'hypomagnesemia_d9', 'acute_renal_disease_d9')]
 
 if (analysis == 'male' | analysis == 'female') {
   base_variables <- base_variables[!base_variables %in% c('sex')]
@@ -136,47 +91,46 @@ if (analysis == 'male' | analysis == 'female') {
   base_variables <- base_variables[!base_variables %in% c('year')]
 } else if (analysis == 'depressed' | analysis == 'not_depressed') {
   base_variables <- base_variables[!base_variables %in% c('depression_base')]
-  }
-
+}
 
 base_variables
 
 #### EXAMINE PREDICTORS OF CENSORING ####
 
 # set reference group to largest group
-cohort$age_group <- relevel(cohort$age_group, ref = "25-34")
-cohort$deprivation <- relevel(cohort$deprivation, ref = "5")
-cohort$ethnicity <- relevel(cohort$ethnicity, ref = "White")
-
 predictors_switch <- glm(reformulate(base_variables, 'switch'), data = cohort, family = binomial())
-write_xlsx(tidy(predictors_switch), paste(path_results, 'predictors_switch.xlsx', sep ='/'))
+write_xlsx(tidy(predictors_switch), paste(path_final_res, 'predictors_switch.xlsx', sep ='/'))
 
 predictors_disc <- glm(reformulate(base_variables, 'disc'), data = cohort, family = binomial())
-write_xlsx(tidy(predictors_disc), paste(path_results, 'predictors_disc.xlsx', sep ='/'))
+write_xlsx(tidy(predictors_disc), paste(path_final_res, 'predictors_disc.xlsx', sep ='/'))
 
 predictors_cens <- glm(reformulate(base_variables, 'censor'), data = cohort, family = binomial())
-write_xlsx(tidy(predictors_cens), paste(path_results, 'predictors_cens.xlsx', sep ='/'))
+write_xlsx(tidy(predictors_cens), paste(path_final_res, 'predictors_cens.xlsx', sep ='/'))
+
+rm(predictors_switch, predictors_disc, predictors_cens)
 
 # treatment-specific probability of censoring
-cohort_snri <- cohort %>% filter(trt == 'snri')
-predictors_cens_snri <- glm(reformulate(base_variables, 'censor'), data = cohort_snri, family = binomial())
-write_xlsx(tidy(predictors_cens_snri), paste(path_results, 'predictors_cens_snri.xlsx', sep ='/'))
+cohort_ref <- cohort %>% filter(trt_dummy == 0)
+predictors_cens_ref <- glm(reformulate(base_variables, 'censor'), data = cohort_ref, family = binomial())
+write_xlsx(tidy(predictors_cens_ref), paste(path_final_res, 'predictors_cens_ref.xlsx', sep ='/'))
 
-cohort_ssri <- cohort %>% filter(trt == 'ssri')
-predictors_cens_ssri <- glm(reformulate(base_variables, 'censor'), data = cohort_ssri, family = binomial())
-write_xlsx(tidy(predictors_cens_ssri), paste(path_results, 'predictors_cens_ssri.xlsx', sep ='/'))
+cohort_comp <- cohort %>% filter(trt_dummy == 1)
+predictors_cens_comp <- glm(reformulate(base_variables, 'censor'), data = cohort_comp, family = binomial())
+write_xlsx(tidy(predictors_cens_comp), paste(path_final_res, 'predictors_cens_comp.xlsx', sep ='/'))
+
+rm(cohort_ref, cohort_comp, predictors_cens_ref, predictors_cens_comp)
 
 #### CONVERT TO COUNTING TIME ####
 
 # counting_time: time in days between cohort entry and censoring or cohort exit, whichever occurred first
-# times_dec: deciles of the censoring distribution for any reason (based on distribution of at_exit_date)
+# times_dec: intervals of the censoring distribution for any reason (based on distribution of censoring times due to disc or switch)
 
 cohort_long$counting_time <- as.numeric(difftime(cohort_long$at_exit_date, cohort_long$entry_date, units = 'days'))
 cohort_long$censor_counting_time <- as.numeric(difftime(cohort_long$censor_date, cohort_long$entry_date, units = 'days'))
 cohort_long$uncensored <- if_else(cohort_long$censor == 0, 1, 0)
 cohort_long <- cohort_long[order(cohort_long$counting_time),]
 
-times_dec <- readRDS(paste(path_cohort, 'times_dec.rds', sep = '/'))
+times_dec <- readRDS(paste(path_intermediate_res, 'times_dec.rds', sep = '/'))
 times_dec <- times_dec[1:9] # remove last decile (100%)
 times_dec
 
@@ -188,7 +142,7 @@ names(cohort_long)[names(cohort_long) == 'counting_time'] <- 'Tstop'
 cohort_long$uncensored_at_tstop <- if_else(is.na(cohort_long$censor_counting_time), 1, # indicator for being uncensored by start of next interval
                                            if_else(cohort_long$Tstop == cohort_long$censor_counting_time, 0, 1)) 
 
-# retrieve covariate values at deciles
+# retrieve covariate values at intervals
 for (i in 1:length(comorbidities)) {
   comorb_name <- comorbidities[i]
   cohort_long$comorb <- if_else(
@@ -235,12 +189,59 @@ cohort_long %<>%
   arrange(id, dec) %>% 
   ungroup()
 
-p_uncens_formula <- as.formula(paste('uncensored_at_tstop', "~", paste(c(variables, 'age_group*depression'), collapse = " + ")))
-p_uncens_formula_pooled <- as.formula(paste('uncensored_at_tstop', "~", paste(c(variables, 'age_group*depression', 'dec'), collapse = " + ")))
+# p_uncens_formula <- as.formula(paste('uncensored_at_tstop', "~", paste(c(variables), collapse = " + ")))
+# p_uncens_formula_pooled <- as.formula(paste('uncensored_at_tstop', "~", paste(c(variables, 'dec'), collapse = " + ")))
 
-if (analysis == 'depressed' | analysis == 'not_depressed') {
-  p_uncens_formula <- as.formula(paste('uncensored_at_tstop', "~", paste(c(variables), collapse = " + ")))
-  p_uncens_formula_pooled <- as.formula(paste('uncensored_at_tstop', "~", paste(c(variables, 'dec'), collapse = " + ")))
+# add interaction between anxiety and age for antidepressant group
+if (exposure == 'antidepressant') {
+  p_uncens_formula <- as.formula(paste('uncensored_at_tstop', "~", paste(c(variables, 'age_group*anxiety'), collapse = " + ")))
+  p_uncens_formula_pooled <- as.formula(paste('uncensored_at_tstop', "~", paste(c(variables, 'age_group*anxiety', 'dec'), collapse = " + ")))
+
+  if (analysis == 'depressed' | analysis == 'not_depressed') {
+    p_uncens_formula <- as.formula(paste('uncensored_at_tstop', "~", paste(c(variables), collapse = " + ")))
+    p_uncens_formula_pooled <- as.formula(paste('uncensored_at_tstop', "~", paste(c(variables, 'dec'), collapse = " + ")))
+  }
+}
+
+# add interactions for heart failure/ischemic heart disease/MI for antihypertensive group
+if (exposure == 'antihypertensive') {
+  p_uncens_formula <- as.formula(paste('uncensored_at_tstop', "~", 
+                                       paste(c(variables, 
+                                               'age_group*heart_failure',
+                                               'age_group*ischemic_heart_disease',
+                                               'age_group*myocardial_infarction',
+                                               'age_group*lvh',
+                                               'age_group*valvular_heart_disease',
+                                               'age_group*arrhythmia',
+                                               'heart_failure*heart_failure',
+                                               'heart_failure*sex',
+                                               'heart_failure*year',
+                                               'heart_failure*deprivation',
+                                               'heart_failure*ethnicity',
+                                               'heart_failure*myocardial_infarction'), 
+                                             collapse = " + ")))
+  
+  p_uncens_formula_pooled <- as.formula(paste('uncensored_at_tstop', "~", 
+                                              paste(c(variables, 
+                                                      'age_group*heart_failure',
+                                                      'age_group*ischemic_heart_disease',
+                                                      'age_group*myocardial_infarction',
+                                                      'age_group*lvh',
+                                                      'age_group*valvular_heart_disease',
+                                                      'age_group*arrhythmia',
+                                                      'heart_failure*heart_failure',
+                                                      'heart_failure*sex',
+                                                      'heart_failure*year',
+                                                      'heart_failure*deprivation',
+                                                      'heart_failure*ethnicity',
+                                                      'heart_failure*myocardial_infarction',
+                                                      'dec'), 
+                                                    collapse = " + ")))
+  
+  if (analysis == 'depressed' | analysis == 'not_depressed') {
+    p_uncens_formula <- as.formula(paste('uncensored_at_tstop', "~", paste(c(variables), collapse = " + ")))
+    p_uncens_formula_pooled <- as.formula(paste('uncensored_at_tstop', "~", paste(c(variables, 'dec'), collapse = " + ")))
+  }
 }
 
 p_uncens_formula
@@ -277,7 +278,7 @@ getweights <- cohort_long %>%
   list_rbind()
 
 getweights %<>%
-  group_by(trt_dummy) %>%
+  group_by(dec, trt_dummy) %>%
   group_split() %>%
   map(fit_and_predict_base) %>% 
   list_rbind()
@@ -299,11 +300,11 @@ summary(getweights)
 cohort_long <- merge(cohort_long, getweights, by = c('id', 'dec'), all.x = TRUE)
 cohort_long %<>% arrange(id, dec)
 
-cat(paste('Unstabilized lagged IPCW weights: \n min:', min(cohort_long$ipcw_str_lag), '\n max:', max(cohort_long$ipcw_str_lag), '\n mean:', mean(cohort_long$ipcw_str_lag), '\n sd:', sd(cohort_long$ipcw_str_lag), '\n'), file = ipcw_desc, append = TRUE)
-cat(paste('Stabilized lagged IPCW weights: \n min:', min(cohort_long$sipcw_str_lag), '\n max:', max(cohort_long$sipcw_str_lag), '\n mean:', mean(cohort_long$sipcw_str_lag), '\n sd:', sd(cohort_long$sipcw_str_lag), '\n'), file = ipcw_desc, append = TRUE)
+cat(paste('Unstabilized stratified non-lagged IPCW weights: \n min:', min(cohort_long$ipcw_str_nonlag), '\n max:', max(cohort_long$ipcw_str_nonlag), '\n mean:', mean(cohort_long$ipcw_str_nonlag), '\n sd:', sd(cohort_long$ipcw_str_nonlag), '\n'), file = ipcw_desc, append = TRUE)
+cat(paste('Stabilized stratified non-lagged IPCW weights: \n min:', min(cohort_long$sipcw_str_nonlag), '\n max:', max(cohort_long$sipcw_str_nonlag), '\n mean:', mean(cohort_long$sipcw_str_nonlag), '\n sd:', sd(cohort_long$sipcw_str_nonlag), '\n'), file = ipcw_desc, append = TRUE)
 
-cat(paste('Unstabilized non-lagged IPCW weights: \n min:', min(cohort_long$ipcw_str_nonlag), '\n max:', max(cohort_long$ipcw_str_nonlag), '\n mean:', mean(cohort_long$ipcw_str_nonlag), '\n sd:', sd(cohort_long$ipcw_str_nonlag), '\n'), file = ipcw_desc, append = TRUE)
-cat(paste('Stabilized non-lagged IPCW weights: \n min:', min(cohort_long$sipcw_str_nonlag), '\n max:', max(cohort_long$sipcw_str_nonlag), '\n mean:', mean(cohort_long$sipcw_str_nonlag), '\n sd:', sd(cohort_long$sipcw_str_nonlag), '\n'), file = ipcw_desc, append = TRUE)
+cat(paste('Unstabilized stratified lagged IPCW weights: \n min:', min(cohort_long$ipcw_str_lag), '\n max:', max(cohort_long$ipcw_str_lag), '\n mean:', mean(cohort_long$ipcw_str_lag), '\n sd:', sd(cohort_long$ipcw_str_lag), '\n'), file = ipcw_desc, append = TRUE)
+cat(paste('Stabilized stratified lagged IPCW weights: \n min:', min(cohort_long$sipcw_str_lag), '\n max:', max(cohort_long$sipcw_str_lag), '\n mean:', mean(cohort_long$sipcw_str_lag), '\n sd:', sd(cohort_long$sipcw_str_lag), '\n'), file = ipcw_desc, append = TRUE)
 
 #### POOLED: NON-LAGGED AND LAGGED WEIGHTS ####
 
@@ -325,7 +326,7 @@ getpooledweights <- cohort_long %>%
   list_rbind()
 
 getpooledweights %<>%
-  group_by(trt_dummy) %>%
+  group_by(trt_dummy, dec) %>%
   group_split() %>%
   map(fit_and_predict_base) %>% 
   list_rbind()
@@ -341,58 +342,61 @@ getpooledweights %<>%
          sipcw_pl_lag = ipcw_pl_lag * p_uncens_base
   )
 
-getpooledweights %<>% select(id, dec, ipcw_pl_nonlag, sipcw_pl_nonlag, weight)
+getpooledweights %<>% select(id, dec, ipcw_pl_nonlag, sipcw_pl_nonlag, ipcw_pl_lag, sipcw_pl_lag, weight)
 summary(getpooledweights)
 
 cohort_long <- merge(cohort_long, getpooledweights, by = c('id', 'dec'), all.x = TRUE)
 
-cat(paste('Unstabilized pooled IPCW weights: \n min:', min(cohort_long$ipcw_pl_nonlag), '\n max:', max(cohort_long$ipcw_pl_nonlag), '\n mean:', mean(cohort_long$ipcw_pl_nonlag), '\n sd:', sd(cohort_long$ipcw_pl_nonlag), '\n'), file = ipcw_desc, append = TRUE)
-cat(paste('Stabilized pooled IPCW weights: \n min:', min(cohort_long$sipcw_pl_nonlag), '\n max:', max(cohort_long$sipcw_pl_nonlag), '\n mean:', mean(cohort_long$sipcw_pl_nonlag), '\n sd:', sd(cohort_long$sipcw_pl_nonlag), '\n'), file = ipcw_desc, append = TRUE)
+cat(paste('Unstabilized pooled nonlagged IPCW weights: \n min:', min(cohort_long$ipcw_pl_nonlag), '\n max:', max(cohort_long$ipcw_pl_nonlag), '\n mean:', mean(cohort_long$ipcw_pl_nonlag), '\n sd:', sd(cohort_long$ipcw_pl_nonlag), '\n'), file = ipcw_desc, append = TRUE)
+cat(paste('Stabilized pooled nonlagged IPCW weights: \n min:', min(cohort_long$sipcw_pl_nonlag), '\n max:', max(cohort_long$sipcw_pl_nonlag), '\n mean:', mean(cohort_long$sipcw_pl_nonlag), '\n sd:', sd(cohort_long$sipcw_pl_nonlag), '\n'), file = ipcw_desc, append = TRUE)
 
-saveRDS(cohort_long, file = paste(path_cohort, 'antidepressant_cohort_ipcw.rds', sep='/'))
+cat(paste('Unstabilized pooled lagged IPCW weights: \n min:', min(cohort_long$ipcw_pl_lag), '\n max:', max(cohort_long$ipcw_pl_lag), '\n mean:', mean(cohort_long$ipcw_pl_lag), '\n sd:', sd(cohort_long$ipcw_pl_lag), '\n'), file = ipcw_desc, append = TRUE)
+cat(paste('Stabilized pooled lagged IPCW weights: \n min:', min(cohort_long$sipcw_pl_lag), '\n max:', max(cohort_long$sipcw_pl_lag), '\n mean:', mean(cohort_long$sipcw_pl_lag), '\n sd:', sd(cohort_long$sipcw_pl_lag), '\n'), file = ipcw_desc, append = TRUE)
+
+saveRDS(cohort_long, file = paste(path_intermediate_res, 'cohort_ipcw.rds', sep='/'))
 
 #### CHECKING WEIGHTS AND MODEL ####
 
 # pooled IPCW model coefficients
-ipcw_pl_nonlaged_fit_snri <- glm(p_uncens_formula_pooled, 
+ipcw_pl_nonlagged_fit_ref <- glm(p_uncens_formula_pooled, 
                 family = binomial(), 
                 data = cohort_long, 
                 subset = trt_dummy == 0)
 
-write_xlsx(tidy(ipcw_pl_nonlaged_fit_snri), paste(path_results, 'ipcw_pl_nonlaged_fit_snri.xlsx', sep ='/'))
+write_xlsx(tidy(ipcw_pl_nonlagged_fit_ref), paste(path_final_res, 'ipcw_pl_nonlagged_fit_ref.xlsx', sep ='/'))
 
-ipcw_pl_nonlaged_fit_ssri <- glm(p_uncens_formula_pooled, 
+ipcw_pl_nonlagged_fit_comp <- glm(p_uncens_formula_pooled, 
                             family = binomial(), 
                             data = cohort_long, 
                             subset = trt_dummy == 1)
 
-write_xlsx(tidy(ipcw_pl_nonlaged_fit_ssri), paste(path_results, 'ipcw_pl_nonlaged_fit_ssri.xlsx', sep ='/'))
+write_xlsx(tidy(ipcw_pl_nonlagged_fit_comp), paste(path_final_res, 'ipcw_pl_nonlagged_fit_comp.xlsx', sep ='/'))
 
 # check if censored patients have higher IPCW weights in one treatment group
-censored_snri <- cohort_long %>% 
+censored_ref <- cohort_long %>% 
   filter(censor == 1, trt_dummy == 0)
 
-summary(censored_snri$siptw)
-sd(censored_snri$siptw)
-summary(censored_snri$sipcw_str_lag)
-sd(censored_snri$sipcw_str_lag)
-summary(censored_snri$sipcw_str_nonlag)
-sd(censored_snri$sipcw_str_nonlag)
-summary(censored_snri$sipcw_pl_nonlag)
-sd(censored_snri$sipcw_pl_nonlag)
-summary(censored_snri$sipcw_pl_lag)
-sd(censored_snri$sipcw_pl_lag)
+summary(censored_ref$iptw)
+sd(censored_ref$iptw)
+summary(censored_ref$ipcw_str_lag)
+sd(censored_ref$ipcw_str_lag)
+summary(censored_ref$ipcw_str_nonlag)
+sd(censored_ref$ipcw_str_nonlag)
+summary(censored_ref$ipcw_pl_nonlag)
+sd(censored_ref$ipcw_pl_nonlag)
+summary(censored_ref$ipcw_pl_lag)
+sd(censored_ref$ipcw_pl_lag)
 
-censored_ssri <- cohort_long %>% 
+censored_comp <- cohort_long %>% 
   filter(censor == 1, trt_dummy == 1)
 
-summary(censored_ssri$siptw)
-sd(censored_ssri$siptw)
-summary(censored_ssri$sipcw_str_lag)
-sd(censored_ssri$sipcw_str_lag)
-summary(censored_ssri$sipcw_str_nonlag)
-sd(censored_ssri$sipcw_str_nonlag)
-summary(censored_ssri$sipcw_pl_nonlag)
-sd(censored_ssri$sipcw_pl_nonlag)
-summary(censored_ssri$sipcw_pl_lag)
-sd(censored_ssri$sipcw_pl_lag)
+summary(censored_comp$iptw)
+sd(censored_comp$iptw)
+summary(censored_comp$ipcw_str_lag)
+sd(censored_comp$ipcw_str_lag)
+summary(censored_comp$ipcw_str_nonlag)
+sd(censored_comp$ipcw_str_nonlag)
+summary(censored_comp$ipcw_pl_nonlag)
+sd(censored_comp$ipcw_pl_nonlag)
+summary(censored_comp$ipcw_pl_lag)
+sd(censored_comp$ipcw_pl_lag)

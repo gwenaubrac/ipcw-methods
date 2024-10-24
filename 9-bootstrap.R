@@ -3,23 +3,34 @@
 ## Program: 9. Bootstrapping 
 ##
 ## Purpose: Bootstrap cohort to obtain percentile confidence intervals for IR, IRR, and IRD.
+## The same steps from program 4a (for mortality) or 4b (for clinical outcome) until 9a/9b 
+## are repeated in a random sample of the cohort. 
+## For efficiency, the code was rewritten using data.table. 
+##
 ##
 ## Author: Gwen Aubrac
 ##
-## Date Created: 2024-08-30
+## Date Created: 2024-10-15
 ##
 ## ---------------------------
 ##
-## Notes: Confidence intervals constructed using boot (bootstrap_results_boot, bootstrap_results_manual to save along iterations).
-## Computation speed was compared with future (bootstrap_results_future).
+## Notes: Less comments/documentation because the same steps from previous programs
+## are simply repeated inside the bootstap function. 
 ##
 ## ---------------------------
 
-# analysis: flex_grace_period, 90_day_grace_period
-# male, female, young, old, 2019, 2020, 2021, 2022
+#### SPECIFY ANALYSIS ####
+
+# cohort: antidepressant, antihypertensive, antidiabetic
+exposure <- 'antihypertensive'
+
+# outcome: all-cause mortality, suicidal ideation
+outcome <- 'all-cause mortality'
+
+# analysis: main, flexible_grace_period, 90_day_grace_period, male, female
+# young, old, 2019, 2020, 2021, 2022
 # depressed, not_depressed
-
-analysis <- ''
+analysis <- 'main'
 
 #### LOAD PACKAGES ####
 
@@ -33,75 +44,33 @@ library(fastglm)
 library(boot)
 library(parallel)
 library(writexl)
+library(tidyr)
 
 #### DEFINE PATHS ####
 
-path_main <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/main" 
+path_intermediate_res_main <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, 'main', 'intermediate', sep = '/')
+path_intermediate_res <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, analysis, 'intermediate', sep = '/')
+path_final_res <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, analysis, 'final', sep = '/')
 
-if (analysis == 'main' | analysis == '') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/main" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/main" 
-} else if (analysis == 'male') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/male" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/male" 
-} else if (analysis == 'female') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/female" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/female" 
-} else if (analysis == 'young') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/young" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/young" 
-} else if (analysis == 'old') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/old" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/old" 
-} else if (analysis == '2019') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/2019" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/2019" 
-} else if (analysis == '2020') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/2020" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/2020" 
-} else if (analysis == '2021') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/2021" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/2021" 
-} else if (analysis == '2022') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/2022" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/2022" 
-} else if (analysis == 'flex_grace_period') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/sensitivity/flex_grace_period" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/sensitivity/flex_grace_period" 
-} else if (analysis == '90_day_grace_period') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/sensitivity/90_day_grace_period" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/sensitivity/90_day_grace_period" 
-} else if (analysis == 'depressed') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/depressed" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/depressed" 
-} else if (analysis == 'not_depressed') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/not_depressed" 
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/not_depressed" 
-} 
+## Variables and dataframes used within bootstrap
 
-## Variables and dataframes used within boostrap
+cohort <- readRDS(file = paste(path_intermediate_res, 'cohort_outcome.rds', sep = '/'))
+covariates <- readRDS(file = paste(path_intermediate_res, 'covariates.rds', sep = '/'))
+comorbidities <- readRDS(file = paste(path_intermediate_res, 'comorbidities.rds', sep = '/'))
+breaks <- readRDS(file = paste(path_intermediate_res, 'interval_breaks.rds', sep = '/'))
+model <- readRDS(file = paste(path_final_res, 'iptw_model.rds', sep = '/'))
 
-cohort <- readRDS(file = paste(path_cohort, 'antidepressant_cohort_covariates.rds', sep = '/'))
-covariates <- readRDS(file = paste(path_main, 'covariates.rds', sep = '/'))
-comorbidities <- readRDS(file = paste(path_main, 'comorbidities.rds', sep = '/'))
+first_comorb <- readRDS(paste(path_intermediate_res, 'first_comorb.rds', sep = '/'))
+first_comorb <- first_comorb %>%
+  pivot_wider(id_cols = id, names_from = comorb, values_from = comorb_date)
 
-# times_dec <- readRDS(paste(path_cohort, 'times_dec.rds', sep = '/'))
-# times_dec <- times_dec[1:9] 
-# times_dec
-
-# breaks for the time intervals
-breaks <- readRDS(file = paste(path_cohort, 'interval_breaks.rds', sep = '/'))
-
-# remove variables that violate positivity assumption
-variables <- c(covariates, comorbidities)
-# variables <- variables[!variables %in% c('hypocalcemia', 'hypomagnesemia', 'acute_renal_disease')] 
-variables <- variables[!variables %in% c('hypocalcemia', 'hypomagnesemia', 'acute_renal_disease', 'hypokalemia', 'cardiomyopathy')] 
-# variables <- variables[!variables %in% c('hypocalcemia', 'hypomagnesemia', 'acute_renal_disease', 'ethnicity')] 
-variables
-
-model <- readRDS(file = paste(path_results, 'iptw_model.rds', sep = '/'))
+base_comorb <- readRDS(paste(path_intermediate_res, 'base_comorb.rds', sep = '/'))
+dec_comorb <- readRDS(paste(path_intermediate_res, 'dec_comorb.rds', sep = '/'))
+cat_variables <- c('sex', 'year', 'ethnicity', 'deprivation', base_comorb, dec_comorb, 'disc', 'switch')
 
 # remove variables for subgroup analyses
+variables <- c(covariates, comorbidities)
+
 if (analysis == 'male' | analysis == 'female') {
   variables <- variables[!variables %in% c('sex')]
 } else if (analysis == '2019' | analysis == '2020' | analysis == '2021' | analysis == '2022') {
@@ -118,16 +87,71 @@ variables
 predictors <- as.formula(paste('~', as.character(model)[-1][2], sep = ''))
 predictors
 
-p_uncens_predictors <- as.formula(paste("~", paste(c(variables, 'age_group*depression'), collapse = " + ")))
-if (analysis == 'depressed' | analysis == 'not_depressed') {
-  p_uncens_predictors <- as.formula(paste("~", paste(c(variables), collapse = " + ")))
+if (exposure == 'antidepressant') {
+  p_uncens_predictors <- as.formula(paste("~", paste(
+    c(variables, 'age_group*anxiety'), collapse = " + "
+  )))
+} 
+
+# if (analysis == 'depressed' | analysis == 'not_depressed') {
+#   p_uncens_predictors <- as.formula(paste("~", paste(c(variables), collapse = " + ")))
+# }
+
+if (exposure == 'antihypertensive') {
+  p_uncens_predictors <- as.formula(paste("~", paste(
+    c(
+      variables,
+      'age_group*heart_failure',
+      'age_group*ischemic_heart_disease',
+      'age_group*myocardial_infarction',
+      'age_group*lvh',
+      'age_group*valvular_heart_disease',
+      'age_group*arrhythmia',
+      'heart_failure*heart_failure',
+      'heart_failure*sex',
+      'heart_failure*year',
+      'heart_failure*deprivation',
+      'heart_failure*ethnicity',
+      'heart_failure*myocardial_infarction'
+    ),
+    collapse = " + "
+  )))
 }
+
 p_uncens_predictors
 
-p_uncens_predictors_pooled <- as.formula(paste("~", paste(c(variables, 'age_group*depression', 'dec'), collapse = " + ")))
-if (analysis == 'depressed' | analysis == 'not_depressed') {
-  p_uncens_predictors_pooled <- as.formula(paste("~", paste(c(variables, 'dec'), collapse = " + ")))
+if (exposure == 'antidepressant') {
+  p_uncens_predictors_pooled <- as.formula(paste("~", paste(
+    c(variables, 'age_group*anxiety', 'dec'), collapse = " + "
+  )))
+} 
+
+# if (analysis == 'depressed' | analysis == 'not_depressed') {
+#   p_uncens_predictors_pooled <- as.formula(paste("~", paste(c(variables, 'dec'), collapse = " + ")))
+# }
+
+if (exposure == 'antihypertensive') {
+  p_uncens_predictors_pooled <- as.formula(paste("~", paste(
+    c(
+      variables,
+      'age_group*heart_failure',
+      'age_group*ischemic_heart_disease',
+      'age_group*myocardial_infarction',
+      'age_group*lvh',
+      'age_group*valvular_heart_disease',
+      'age_group*arrhythmia',
+      'heart_failure*heart_failure',
+      'heart_failure*sex',
+      'heart_failure*year',
+      'heart_failure*deprivation',
+      'heart_failure*ethnicity',
+      'heart_failure*myocardial_infarction',
+      'dec'
+    ),
+    collapse = " + "
+  )))
 }
+
 p_uncens_predictors_pooled
 
 fit_and_predict <- function(data_subset) {
@@ -157,6 +181,7 @@ fit_and_predict_pooled <- function(data_subset) {
 rm(variables, covariates, model, analysis)
 
 setDT(cohort)
+setDT(first_comorb)
 
 #### BOOTSTRAP FUNCTION ####
 
@@ -164,8 +189,81 @@ setDT(cohort)
 
 bs <- function(data, indices) {
   
+  # for initial run inside fx:
+  # indices <- sample(x = 1:length(cohort$id), size = length(cohort$id), replace = TRUE)
+  # data <- cohort
+  # or d <- cohort for original sample
+  
   d <- data[indices,]
   d[, boot_id := .I]
+  
+  #### 0. GET COVARIATE VALUES AT INTERVALS ####
+  
+  d[, `:=`(
+    censor = as.integer(switch == 1 | disc == 1)
+  )]
+  
+  d[, `:=`(
+    censor_date = if_else(censor == 1, pmin(switch_date, disc_date, na.rm = TRUE), NA)
+  )]
+  
+  d[, censor_date := as.Date(censor_date)]
+  
+  censored_only <- d[!is.na(censor_date)]
+  
+  censoring_times <- as.numeric(censored_only$censor_date - censored_only$entry_date)
+  times_dec <- quantile(censoring_times, probs = breaks)
+  
+  if (exposure == 'antidepressant') {
+    times_dec[[1]] <- times_dec[[1]] + 1
+  }
+  
+  times_dec <- times_dec[1:9]
+  
+  # get relative date of censoring interval for each patient
+  d[, paste0("cens_d", 1:9) := lapply(1:9, function(i) entry_date + times_dec[[i]])]
+  
+  for (i in 2:ncol(first_comorb)) {
+    comorb_name <- names(first_comorb)[i]
+    first_comorb_i <- first_comorb[, .(id, comorb_date = get(comorb_name))]
+    
+    d <- merge(d, first_comorb_i, by = "id", all.x = TRUE)
+    
+    d[, `:=`(
+      comorb_base = as.integer(!is.na(comorb_date) & comorb_date < entry_date),
+      comorb_d1 = as.integer(!is.na(comorb_date) & comorb_date < cens_d1),
+      comorb_d2 = as.integer(!is.na(comorb_date) & comorb_date < cens_d2),
+      comorb_d3 = as.integer(!is.na(comorb_date) & comorb_date < cens_d3),
+      comorb_d4 = as.integer(!is.na(comorb_date) & comorb_date < cens_d4),
+      comorb_d5 = as.integer(!is.na(comorb_date) & comorb_date < cens_d5),
+      comorb_d6 = as.integer(!is.na(comorb_date) & comorb_date < cens_d6),
+      comorb_d7 = as.integer(!is.na(comorb_date) & comorb_date < cens_d7),
+      comorb_d8 = as.integer(!is.na(comorb_date) & comorb_date < cens_d8),
+      comorb_d9 = as.integer(!is.na(comorb_date) & comorb_date < cens_d9)
+    )]
+    
+    setnames(d, "comorb_date", paste(comorb_name, "date", sep = "_"))
+    setnames(d, "comorb_base", paste(comorb_name, "base", sep = "_"))
+    setnames(d, "comorb_d1", paste(comorb_name, "d1", sep = "_"))
+    setnames(d, "comorb_d2", paste(comorb_name, "d2", sep = "_"))
+    setnames(d, "comorb_d3", paste(comorb_name, "d3", sep = "_"))
+    setnames(d, "comorb_d4", paste(comorb_name, "d4", sep = "_"))
+    setnames(d, "comorb_d5", paste(comorb_name, "d5", sep = "_"))
+    setnames(d, "comorb_d6", paste(comorb_name, "d6", sep = "_"))
+    setnames(d, "comorb_d7", paste(comorb_name, "d7", sep = "_"))
+    setnames(d, "comorb_d8", paste(comorb_name, "d8", sep = "_"))
+    setnames(d, "comorb_d9", paste(comorb_name, "d9", sep = "_"))
+  }
+  
+  d[, (cat_variables) := lapply(.SD, as.factor), .SDcols = cat_variables]
+  
+  if (exposure == 'antidepressant') {
+    d[, depression_base := depression_d1]
+  }
+  
+  if (exposure == 'antihypertensive') {
+    d[, hypertension_base := hypertension_d1]
+  }
   
   #### 1. CALCUALTE IPTW ####
   
@@ -198,28 +296,14 @@ bs <- function(data, indices) {
   d_long$uncensored <- if_else(d_long$censor == 0, 1, 0)
   d_long <- d_long[order(d_long$counting_time),]
   
-  # define interval breaks
-  censored_only <- d %>%
-    filter(!is.na(censor_date))
-  
-  censoring_times <- as.numeric(censored_only$censor_date - censored_only$entry_date)
-  times_dec <- quantile(censoring_times, probs = breaks)
-  
-  if (analysis == 'main') {
-    times_dec[[1]] <- 59
-  } else if (analysis == '90_day_grace_period') {
-    times_dec[[1]] <- 119
-  } else if (analysis == 'flex_grace_period') {
-    times_dec[[1]] <- 57
-  }
-  
-  times_dec <- times_dec[1:9]
-  
+  # split up data into intervals
   d_long$Tstart <- 0
   d_long <- survSplit(d_long, cut = times_dec, end = 'counting_time', start = 'Tstart', event = 'uncensored')
   names(d_long)[names(d_long) == 'counting_time'] <- 'Tstop' 
   d_long$uncensored_at_tstop <- if_else(is.na(d_long$censor_counting_time), 1,
                                         if_else(d_long$Tstop == d_long$censor_counting_time, 0, 1)) 
+  
+  rm(censored_only, censoring_times)
   
   # retrieve covariate values at deciles
   setDT(d_long)
@@ -259,16 +343,22 @@ bs <- function(data, indices) {
   ), by = boot_id]
   
   d_long[, `:=`(
-    ipcw_str_nonlag = cumprod(weight),
+    ipcw_str_nonlag = cumprod(weight)
+  ), by = boot_id]
+  
+  d_long[, `:=`(
     sipcw_str_nonlag = ipcw_str_nonlag * p_uncens_base
   ), by = boot_id]
   
   d_long[, `:=`(
-    ipcw_str_lag = shift(ipcw_str_nonlag, n = 1, type = "lag", fill = 1),
+    ipcw_str_lag = shift(ipcw_str_nonlag, n = 1, type = "lag", fill = 1)
+  ), by = boot_id]
+  
+  d_long[, `:=`(
     sipcw_str_lag = ipcw_str_lag * p_uncens_base
   ), by = boot_id]
   
-  d_long[, `:=`(weight = NULL, stab_weight = NULL, p_uncens = NULL)]
+  d_long[, `:=`(weight = NULL, p_uncens = NULL)]
   
   gc()
   
@@ -277,20 +367,26 @@ bs <- function(data, indices) {
   d_long <- d_long[, fit_and_predict_pooled(.SD), by = .(trt_dummy)]
   
   d_long[, `:=`(
-    weight = 1 / p_uncens,
+    weight = 1 / p_uncens
   ), by = boot_id]
   
   d_long[, `:=`(
-    ipcw_pl_nonlag = cumprod(weight),
+    ipcw_pl_nonlag = cumprod(weight)
+  ), by = boot_id]
+  
+  d_long[, `:=`(
     sipcw_pl_nonlag = ipcw_pl_nonlag * p_uncens_base
   ), by = boot_id]
   
   d_long[, `:=`(
-    ipcw_pl_lag = shift(ipcw_pl_nonlag, n = 1, type = "lag", fill = 1),
+    ipcw_pl_lag = shift(ipcw_pl_nonlag, n = 1, type = "lag", fill = 1)
+  ), by = boot_id]
+  
+  d_long[, `:=`(
     sipcw_pl_lag = ipcw_pl_lag * p_uncens_base
   ), by = boot_id]
   
-  d_long %<>% select(-weight, -stab_weight, -p_uncens, -p_uncens_base)
+  d_long[, `:=`(weight = NULL, p_uncens = NULL, p_uncens_base = NULL)]
   
   gc()
   
@@ -1192,12 +1288,13 @@ bs <- function(data, indices) {
     IRD_stab = as.numeric(ir_results[10,])
   )
   
-  # if use boot:
+  # if use boot::boot, save manually along the way (in case of crash)
   bootstrap_results_manual <<- rbind(bootstrap_results_manual, result)
-  saveRDS(bootstrap_results_manual, file = paste(path_results, 'bootstrap_results_manual_save.rds', sep='/'))
+  saveRDS(bootstrap_results_manual, file = paste(path_final_res, 'bootstrap_results_manual_save.rds', sep='/'))
   
+  # if extracting CIs using manual save, can get results for main sample
   #bootstrap_results_manual_t0 <<- rbind(bootstrap_results_manual_t0, result)
-  #saveRDS(bootstrap_results_manual_t0, file = paste(path_results, 'bootstrap_results_manual_t0.rds', sep='/'))
+  #saveRDS(bootstrap_results_manual_t0, file = paste(path_final_res, 'bootstrap_results_manual_t0.rds', sep='/'))
   
   return(result)
   
@@ -1205,9 +1302,9 @@ bs <- function(data, indices) {
 
 # get result names
 # anlaysis types: 12 (itt, itt.iptw, at, etc...)
-# time results: 12 * 48 (itt_time, itt.iptw_time, etc...)
+# time results: 12 analyses * 48 months (itt_time, itt.iptw_time, etc...)
 # total columns per measure: 12 + 12*48 = 588
-# number of measures: 10 (IR, IR_ref, IR_comp, etc...)
+# number of measures (rows): 10 (IR, IR_ref, IR_comp, etc...)
 
 # names <- names(ir_results)
 # endings <- c(
@@ -1226,14 +1323,14 @@ bs <- function(data, indices) {
 # new_names <- rep(names, times = 10)
 # new_names <- paste(new_names, endings, sep = '')
 # 
-# saveRDS(new_names, file = paste(path_main, 'result_names.rds', sep = '/'))
+# saveRDS(new_names, file = paste(path_intermediate_res_main, 'result_names.rds', sep = '/'))
 
-#### BOOTSTRAP EXECUTION USING BOOT ####
+#### BOOTSTRAP EXECUTION USING BOOT::BOOT ####
 
 set.seed(1)
-R = 10
+R = 100
 
-result_names <- readRDS(file = paste(path_main, 'result_names.rds', sep='/'))
+result_names <- readRDS(file = paste(path_intermediate_res_main, 'result_names.rds', sep='/'))
 bootstrap_results_manual <- data.frame(matrix(nrow = 1, ncol = length(result_names)))
 names(bootstrap_results_manual) <- result_names
 
@@ -1256,7 +1353,7 @@ summary(test)
 # cluster <- makeCluster(num_cores)
 # 
 # clusterExport(cluster, list("bs", "cohort", "comorbidities", "fit_and_predict", "fit_and_predict_base", "fit_and_predict_pooled",
-#                       "times_dec", "p_uncens_predictors", "p_uncens_predictors_pooled", "predictors", "bootstrap_results_manual", "path_results"))
+#                       "times_dec", "p_uncens_predictors", "p_uncens_predictors_pooled", "predictors", "bootstrap_results_manual", "path_final_res"))
 # 
 # clusterEvalQ(cluster, {
 #  library(dplyr)
@@ -1290,16 +1387,16 @@ bootstrap_results_manual <- bootstrap_results_manual[-1,]
 test <- bootstrap_results_manual %>%
  select(itt.IRR, itt.iptw.IRR, at.IRR, at.iptw.IRR, at.iptw.ipcw_str_lag.IRR, at.iptw.ipcw_str_nonlag.IRR, at.iptw.ipcw_pl_nonlag.IRR, at.iptw.ipcw_pl_lag.IRR)
 
-saveRDS(bootstrap_results_manual, file = paste(path_results, 'bootstrap_results_manual.rds', sep='/'))
-saveRDS(bootstrap_results_boot, file = paste(path_results, 'bootstrap_results_boot.rds', sep='/'))
+saveRDS(bootstrap_results_manual, file = paste(path_final_res, 'bootstrap_results_manual.rds', sep='/'))
+saveRDS(bootstrap_results_boot, file = paste(path_final_res, 'bootstrap_results_boot.rds', sep='/'))
 
 # just to get t0 (run only inside bs fx once using cohort instead of sample)
 # bootstrap_results_manual_t0 <- data.frame(matrix(nrow = 1, ncol = length(result_names)))
 # names(bootstrap_results_manual_t0) <- result_names
 
-#### BUILD BOOTSTRAPPED CIs - USING BOOT.CI ####
+#### BUILD BOOTSTRAPPED CIs - USING BOOT::BOOT.CI ####
 
-bootstrap_results_boot <- readRDS (file = paste(path_results, 'bootstrap_results_boot.rds', sep = '/'))
+bootstrap_results_boot <- readRDS (file = paste(path_final_res, 'bootstrap_results_boot.rds', sep = '/'))
 bootstrap_ci <- data.frame(matrix(nrow = 0, ncol = 3))
 colnames(bootstrap_ci) <- c('estimate', 'lower_ci', 'upper_ci')
 
@@ -1321,7 +1418,7 @@ for (i in 1:length(bootstrap_results_boot$t0)) {
  rownames(bootstrap_ci)[i] <- stat
 }
 row.names(bootstrap_ci) <- result_names
-saveRDS(bootstrap_ci, file = paste(path_results, 'bootstrap_ci_boot.rds', sep='/'))
+saveRDS(bootstrap_ci, file = paste(path_final_res, 'bootstrap_ci_boot.rds', sep='/'))
 
 ## Extract CIs for overall IRR 
 
@@ -1393,10 +1490,10 @@ summary_results$variable <- row.names(summary_results)
 summary_results <- summary_results %>%
   select(variable, everything())
 
-write_xlsx(summary_results, paste(path_results, 'incidence_rates_ci_fx.xlsx', sep ='/'))
-saveRDS(summary_results, paste(path_results, 'incidence_rates_ci_fx.rds', sep ='/'))
+write_xlsx(summary_results, paste(path_final_res, 'incidence_rates_ci_fx.xlsx', sep ='/'))
+saveRDS(summary_results, paste(path_final_res, 'incidence_rates_ci_fx.rds', sep ='/'))
 
-#### BOOTSTRAP EXECUTION USING FUTURE ####
+#### BOOTSTRAP EXECUTION USING FUTURE::DOFUTURE ####
 # 
 # library(doFuture)
 # library(foreach)
@@ -1429,18 +1526,18 @@ saveRDS(summary_results, paste(path_results, 'incidence_rates_ci_fx.rds', sep ='
 #   }
 # })
 # 
-# result_names <- readRDS(file = paste(path_results, 'result_names.rds', sep='/'))
+# result_names <- readRDS(file = paste(path_final_res, 'result_names.rds', sep='/'))
 # bootstrap_results_future <- as.data.frame(bootstrap_results_future)
 # names(bootstrap_results_future) <- result_names
-# saveRDS(bootstrap_results_future, paste(path_results, 'bootstrap_results_future.rds', sep ='/'))
+# saveRDS(bootstrap_results_future, paste(path_final_res, 'bootstrap_results_future.rds', sep ='/'))
 
-#### BUILD BOOTSTRAPPED CIs - USING FUTURE OR MANUAL ####
+#### BUILD BOOTSTRAPPED CIs - USING FUTURE OR MANUAL SAVE ####
 
-results <- readRDS(paste(path_results, 'bootstrap_results_manual.rds', sep='/'))
-results_t0 <- readRDS(paste(path_results, 'bootstrap_results_manual_t0.rds', sep='/'))
-#results <- readRDS(paste(path_results, 'bootstrap_results_future.rds', sep='/'))
+results <- readRDS(paste(path_final_res, 'bootstrap_results_manual.rds', sep='/'))
+results_t0 <- readRDS(paste(path_final_res, 'bootstrap_results_manual_t0.rds', sep='/'))
+#results <- readRDS(paste(path_final_res, 'bootstrap_results_future.rds', sep='/'))
 
-results %<>% filter(at.ipcw_str_nonlag.IRR_stab <= 3)
+#results %<>% filter(at.ipcw_str_nonlag.IRR_stab <= 3)
 
 bootstrap_ci <- data.frame(matrix(nrow = 0, ncol = 3))
 colnames(bootstrap_ci) <- c('estimate', 'lower_ci', 'upper_ci')
@@ -1455,9 +1552,9 @@ get_stat_ci <- function(stat_name) {
 
   stat_values <- results[stat_name]
   
-  stat_ci$estimate <- results_t0[2, stat_name]
+  stat_ci$estimate <- results_t0[2, stat_name] # to get estimate from main sample
 
-  #stat_ci$estimate <- quantile(stat_values, prob = c(0.5), na.rm = TRUE)
+  #stat_ci$estimate <- quantile(stat_values, prob = c(0.5), na.rm = TRUE) # to get estimate from 50%
   stat_ci$lower_ci <- quantile(stat_values, prob = c(0.025), na.rm = TRUE)
   stat_ci$upper_ci <- quantile(stat_values, prob = c(0.975), na.rm = TRUE)
 
@@ -1474,9 +1571,9 @@ bootstrap_ci$variable <- row.names(bootstrap_ci)
 bootstrap_ci <- bootstrap_ci %>%
   select(variable, everything())
 
-saveRDS(bootstrap_ci, file = paste(path_results, 'bootstrap_ci.rds', sep='/'))
+saveRDS(bootstrap_ci, file = paste(path_final_res, 'bootstrap_ci.rds', sep='/'))
 
-## Extract CIs for overall IRR 
+## extract CIs for overall IRR ##
 
 # start: itt. or at. 
 # middle: nothing (overall) or .y-m (ex: 2019-01)
@@ -1546,7 +1643,7 @@ summary_results$variable <- row.names(summary_results)
 summary_results <- summary_results %>%
   select(variable, everything())
 
-write_xlsx(summary_results, paste(path_results, 'incidence_rates_ci.xlsx', sep ='/'))
-saveRDS(summary_results, paste(path_results, 'incidence_rates_ci.rds', sep ='/'))
+write_xlsx(summary_results, paste(path_final_res, 'incidence_rates_ci.xlsx', sep ='/'))
+saveRDS(summary_results, paste(path_final_res, 'incidence_rates_ci.rds', sep ='/'))
 
 

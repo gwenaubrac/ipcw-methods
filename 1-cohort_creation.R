@@ -19,7 +19,7 @@
 
 ## Author: Gwen Aubrac
 ##
-## Date Created: 2024-07-22
+## Date Created: 2024-10-15
 ##
 ## ---------------------------
 ##
@@ -30,7 +30,15 @@
 ##
 ## 2. The data used for this project was converted from SAS to R. 
 ##
+## 3. The initial cohort is saved in the folder for all-cause mortality analyses. 
+## The same base cohort is used to investigate other outcomes. 
+##
 ## ---------------------------
+
+#### SPECIFY ANALYSIS ####
+
+# cohort: antidepressant, antihypertensive, antidiabetic
+exposure <- 'antihypertensive'
 
 #### LOAD PACKAGES ####
 
@@ -46,14 +54,16 @@ options(scipen = 999)
 
 #### DEFINE PATHS ####
 
-path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/main"
+path_intermediate_res <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, 'all-cause mortality', 'main', 'intermediate', sep = '/')
+path_exposure <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/data', exposure, 'exposure', sep = '/')
+
 path_cprdA <- "Z:/EPI/Protocol 24_004042/dataA"
 path_cprdB <- "Z:/EPI/Protocol 24_004042/dataB" 
 path_cprdC <- "Z:/EPI/Protocol 24_004042/dataC (no followup)" 
-path_exposure <- "Z:/EPI/Protocol 24_004042/Gwen/data/exposures/antidepressants" # folder containing separate excel for exposures
 path_linkage_1 <- 'Z:/EPI/Protocol 24_004042/Data linkage/Results/Aurum_linked/Final_pt1'
 path_linkage_2 <- 'Z:/EPI/Protocol 24_004042/Data linkage/Results/Aurum_linked/Final_pt2'
-setwd(path_cohort)
+
+setwd(path_intermediate_res)
 
 # create note to keep track of cohort creation numbers
 cohort_creation_desc <- "cohort_creation_desc.txt"
@@ -124,14 +134,13 @@ therapy_filesA2 <- therapy_filesA[61:113]
 gc()
 rx_for_exposure <- data.frame()
 mclapply(therapy_filesA1, filter_prescriptions)
-saveRDS(rx_for_exposure, file = paste(path_cohort, 'rx_A1.rds', sep='/'))
-rx_A1 <- readRDS(file = paste(path_cohort, 'rx_A1.rds', sep = '/'))
+saveRDS(rx_for_exposure, file = paste(path_intermediate_res, 'rx_A1.rds', sep='/'))
 rm(rx_for_exposure)
 
 gc()
 rx_for_exposure <- data.frame()
 mclapply(therapy_filesA2, filter_prescriptions)
-saveRDS(rx_for_exposure, file = paste(path_cohort, 'rx_A2.rds', sep='/'))
+saveRDS(rx_for_exposure, file = paste(path_intermediate_res, 'rx_A2.rds', sep='/'))
 rm(rx_for_exposure)
 
 therapy_filesB <- list.files(
@@ -147,13 +156,13 @@ therapy_filesB2 <- therapy_filesB[61:120]
 gc()
 rx_for_exposure <- data.frame()
 mclapply(therapy_filesB1, filter_prescriptions)
-saveRDS(rx_for_exposure, file = paste(path_cohort, 'rx_B1.rds', sep='/'))
+saveRDS(rx_for_exposure, file = paste(path_intermediate_res, 'rx_B1.rds', sep='/'))
 rm(rx_for_exposure)
 
 gc()
 rx_for_exposure <- data.frame()
 mclapply(therapy_filesB2, filter_prescriptions)
-saveRDS(rx_for_exposure, file = paste(path_cohort, 'rx_B2.rds', sep='/'))
+saveRDS(rx_for_exposure, file = paste(path_intermediate_res, 'rx_B2.rds', sep='/'))
 rm(rx_for_exposure)
 
 therapy_filesC <- list.files(
@@ -166,18 +175,18 @@ therapy_filesC <- list.files(
 gc()
 rx_for_exposure <- data.frame()
 mclapply(therapy_filesC, filter_prescriptions)
-saveRDS(rx_for_exposure, file = paste(path_cohort, 'rx_C.rds', sep='/'))
+saveRDS(rx_for_exposure, file = paste(path_intermediate_res, 'rx_C.rds', sep='/'))
 rm(rx_for_exposure)
 
-rx_A1 <- readRDS(file = paste(path_cohort, 'rx_A1.rds', sep = '/'))
-rx_A2 <- readRDS(file = paste(path_cohort, 'rx_A2.rds', sep = '/'))
-rx_B1 <- readRDS(file = paste(path_cohort, 'rx_B1.rds', sep = '/'))
-rx_B2 <- readRDS(file = paste(path_cohort, 'rx_B2.rds', sep = '/'))
-rx_C <- readRDS(file = paste(path_cohort, 'rx_C.rds', sep = '/'))
+rx_A1 <- readRDS(file = paste(path_intermediate_res, 'rx_A1.rds', sep = '/'))
+rx_A2 <- readRDS(file = paste(path_intermediate_res, 'rx_A2.rds', sep = '/'))
+rx_B1 <- readRDS(file = paste(path_intermediate_res, 'rx_B1.rds', sep = '/'))
+rx_B2 <- readRDS(file = paste(path_intermediate_res, 'rx_B2.rds', sep = '/'))
+rx_C <- readRDS(file = paste(path_intermediate_res, 'rx_C.rds', sep = '/'))
 
 rx_for_exposure <- rbind(rx_A1, rx_A2, rx_B1, rx_B2, rx_C)
 rx_for_exposure <- merge(rx_for_exposure, exposure, by.x = 'product_code', by.y = 'ProdCodeId', all.x = TRUE)
-saveRDS(rx_for_exposure, file = paste(path_cohort, 'rx_for_exposure.rds', sep ='/'))
+saveRDS(rx_for_exposure, file = paste(path_intermediate_res, 'rx_for_exposure.rds', sep ='/'))
 
 length(unique(rx_for_exposure$id))
 length(rx_for_exposure$id)
@@ -354,7 +363,7 @@ cat(paste('Number of patients with >= 365 days lookback (regstart):', length(whi
 cohort %<>% filter (cohort$entry_date - cohort$regstart >= 365)
 length(unique(cohort$id))
 
-## 3. Apply exclusion criteria (3): >365 days of follow-up available since cohort entry
+## 3. Apply exclusion criteria (3): >365 days of follow-up with practice available since cohort entry
 ## based on last collection date of practice
 
 cat('Number of patients with <365 days follow-up (lcd):', length(which(cohort$lcd - cohort$entry_date < 365)))
@@ -437,5 +446,5 @@ rm(therapy_filesA, therapy_filesB, therapy_filesA1, therapy_filesA2, therapy_fil
 table(cohort$trt)
 
 # save cohort
-saveRDS(cohort, file = paste(path_cohort, 'antidepressant_cohort.rds', sep='/'))
-saveRDS(switched_to, file = paste(path_cohort, 'switched_to.rds', sep = '/'))
+saveRDS(cohort, file = paste(path_intermediate_res, 'cohort_creation.rds', sep='/'))
+saveRDS(switched_to, file = paste(path_intermediate_res, 'switched_to.rds', sep = '/'))

@@ -7,7 +7,7 @@
 ##
 ## Author: Gwen Aubrac
 ##
-## Date Created: 2024-08-06
+## Date Created: 2024-10-15
 ##
 ## ---------------------------
 ##
@@ -16,11 +16,18 @@
 ##
 ## ---------------------------
 
-# analysis: flex_grace_period, 90_day_grace_period
-# male, female, young, old, 2019, 2020, 2021, 2022
-# depressed, not_depressed
+#### SPECIFY ANALYSIS ####
 
-analysis <- ''
+# cohort: antidepressant, antihypertensive, antidiabetic
+exposure <- 'antihypertensive'
+
+# outcome: all-cause mortality, suicidal ideation
+outcome <- 'all-cause mortality'
+
+# analysis: main, flexible_grace_period, 90_day_grace_period, male, female
+# young, old, 2019, 2020, 2021, 2022
+# depressed, not_depressed
+analysis <- 'main'
 
 #### LOAD PACKAGES ####
 
@@ -58,74 +65,33 @@ colors_adj = c('#f56864', '#6a00a8')
 
 #### DEFINE PATHS ####
 
-path_main <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/main"
+path_intermediate_res_main <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, 'main', 'intermediate', sep = '/')
+path_intermediate_res <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, analysis, 'intermediate', sep = '/')
+path_final_res <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, analysis, 'final', sep = '/')
+path_plots <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, analysis, 'plots', sep = '/')
 
-covariates <- readRDS(file = paste(path_main, 'covariates.rds', sep = '/'))
-comorbidities <- readRDS(file = paste(path_main, 'comorbidities.rds', sep = '/'))
-base_comorb <- readRDS(file = paste(path_main, 'base_comorb.rds', sep = '/'))
-dec_comorb <- readRDS(file = paste(path_main, 'dec_comorb.rds', sep = '/'))
-
-if (analysis == 'main' |
-    analysis == '') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/main"
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/main"
-  path_plots <- "Z:/EPI/Protocol 24_004042/Gwen/results/plots/main"
-} else if (analysis == 'male') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/male"
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/male"
-  path_plots <- "Z:/EPI/Protocol 24_004042/Gwen/results/plots/male"
-} else if (analysis == 'female') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/female"
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/female"
-  path_plots <- "Z:/EPI/Protocol 24_004042/Gwen/results/plots/female"
-} else if (analysis == 'young') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/young"
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/young"
-  path_plots <- "Z:/EPI/Protocol 24_004042/Gwen/results/plots/young"
-} else if (analysis == 'old') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/old"
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/old"
-  path_plots <- "Z:/EPI/Protocol 24_004042/Gwen/results/plots/old"
-} else if (analysis == '2019') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/2019"
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/2019"
-  path_plots <- "Z:/EPI/Protocol 24_004042/Gwen/results/plots/2019"
-} else if (analysis == '2020') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/2020"
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/2020"
-  path_plots <- "Z:/EPI/Protocol 24_004042/Gwen/results/plots/2020"
-} else if (analysis == '2021') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/2021"
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/2021"
-  path_plots <- "Z:/EPI/Protocol 24_004042/Gwen/results/plots/2021"
-} else if (analysis == '2022') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/2022"
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/2022"
-  path_plots <- "Z:/EPI/Protocol 24_004042/Gwen/results/plots/2022"
-} else if (analysis == 'flex_grace_period') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/sensitivity/flex_grace_period"
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/sensitivity/flex_grace_period"
-  path_plots <- "Z:/EPI/Protocol 24_004042/Gwen/results/plots/flex_grace_period"
-} else if (analysis == '90_day_grace_period') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/sensitivity/90_day_grace_period"
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/sensitivity/90_day_grace_period"
-  path_plots <- "Z:/EPI/Protocol 24_004042/Gwen/results/plots/90_day_grace_period"
-} else if (analysis == 'depressed') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/depressed"
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/depressed"
-  path_plots <- "Z:/EPI/Protocol 24_004042/Gwen/results/plots/depressed"
-} else if (analysis == 'not_depressed') {
-  path_cohort <- "Z:/EPI/Protocol 24_004042/Gwen/data/cohort/subgroup/not_depressed"
-  path_results <- "Z:/EPI/Protocol 24_004042/Gwen/results/subgroup/not_depressed"
-  path_plots <- "Z:/EPI/Protocol 24_004042/Gwen/results/plots/not_depressed"
-} 
+covariates <- readRDS(file = paste(path_intermediate_res_main, 'covariates.rds', sep = '/'))
+comorbidities <- readRDS(file = paste(path_intermediate_res_main, 'comorbidities.rds', sep = '/'))
+base_comorb <- readRDS(file = paste(path_intermediate_res_main, 'base_comorb.rds', sep = '/'))
+dec_comorb <- readRDS(file = paste(path_intermediate_res_main, 'dec_comorb.rds', sep = '/'))
+times_dec <- readRDS(file = paste(path_intermediate_res, 'times_dec.rds', sep = '/'))
 
 setwd(path_plots)
+
+ref_trt <- case_when(
+  exposure == 'antidepressant' ~ 'SNRI',
+  exposure == 'antihypertensive' ~ 'ARB'
+)
+
+comp_trt <- case_when(
+  exposure == 'antidepressant' ~ 'SSRI',
+  exposure == 'antihypertensive' ~ 'ACEI'
+)
 
 #### TABLE 1 ####
 
 # data formatting
-cohort <- readRDS(paste(path_cohort, 'antidepressant_cohort_iptw.rds', sep = '/'))
+cohort <- readRDS(paste(path_intermediate_res, 'cohort_iptw.rds', sep = '/'))
 
 cohort %<>%
   mutate(disc_one_year = as.factor(if_else(disc == 1 & disc_date < ymd(entry_date+365), 1, 0)))
@@ -166,7 +132,7 @@ label(tab_cohort$copd_base) <- 'COPD'
 label(tab_cohort$hypocalcemia_base) <- 'Hypocalcemia'
 label(tab_cohort$deprivation) <- 'Deprivation Index'
 label(tab_cohort$ethnicity) <- 'Ethnicity'
-label(tab_cohort$anxiety) <- 'Anxiety'
+label(tab_cohort$anxiety_base) <- 'Anxiety'
 
 units(tab_cohort$age_at_entry) <- 'years'
 units(tab_cohort$itt_follow_up) <- 'days'
@@ -205,7 +171,7 @@ tidy_smd(cohort, c(age_group), .group = trt, .wts = c(iptw))
 
 #### COVARIATE ASSOCIATION OVER TIME ####
 
-cohort <- readRDS(file = paste(path_cohort, 'antidepressant_cohort_covariates.rds', sep = '/'))
+cohort <- readRDS(file = paste(path_intermediate_res, 'cohort_covariates.rds', sep = '/'))
 
 # choose which variables to plot:
 
@@ -323,19 +289,16 @@ rm(cohort)
 
 #### PROPENSITY SCORE DENSITY ####
 
-cohort <- readRDS(file = paste(path_cohort, 'antidepressant_cohort_covariates.rds', sep = '/'))
+cohort <- readRDS(file = paste(path_intermediate_res, 'cohort_update_cov.rds', sep = '/'))
 
-cohort <- cohort %>%
-  filter (!is.na(sex))
-
-model <- readRDS(paste(path_results, 'iptw_model.rds', sep = '/'))
+model <- readRDS(paste(path_final_res, 'iptw_model.rds', sep = '/'))
 
 weights_out <- WeightIt::weightit(
   formula = model,
   data = cohort,
   method = 'glm')
 
-weights_out$treat <- if_else(weights_out$treat == 0, 'SNRI', 'SSRI')
+weights_out$treat <- if_else(weights_out$treat == 0, ref_trt, comp_trt)
 
 p <- bal.plot(
   weights_out,
@@ -345,7 +308,6 @@ p <- bal.plot(
   mirror = FALSE,
   colors = colors_trt, 
   grid = FALSE,
-  legend.labels = c('SNRI', 'SSRI'),
   position = 'bottom'
 )
 
@@ -362,8 +324,8 @@ dev.off()
 
 #### LOVE PLOT ####
 
-cohort <- readRDS(file = paste(path_cohort, 'antidepressant_cohort_iptw.rds', sep = '/'))
-covs <- readRDS(file = paste(path_cohort, 'iptw_covs.rds', sep = '/'))
+cohort <- readRDS(file = paste(path_intermediate_res, 'cohort_iptw.rds', sep = '/'))
+covs <- readRDS(file = paste(path_intermediate_res, 'iptw_covs.rds', sep = '/'))
 
 bal_tab <- bal.tab(trt_dummy ~ covs, data = cohort,
                    weights = 'iptw',
@@ -437,8 +399,8 @@ rm(cohort)
 
 #### CUMULATIVE INCIDENCE BY TRT ####
 
-cohort_long <- readRDS(file = paste(path_results, 'cohort_analytic_at.rds', sep = '/'))
-cohort <- readRDS(file = paste(path_cohort, 'antidepressant_cohort_iptw.rds', sep = '/'))
+cohort_long <- readRDS(file = paste(path_intermediate_res, 'cohort_analytic_at.rds', sep = '/'))
+cohort <- readRDS(file = paste(path_intermediate_res, 'cohort_iptw.rds', sep = '/'))
 
 ## REFERENCE GROUP ##
 
@@ -460,25 +422,44 @@ ref_at_iptw_ipcw_pl_lag <- survfit(Surv(Tstart, Tstop, event_at_tstop) ~ 1, data
 
 # ITT vs AT
 
-if (analysis %in% c('', 'main', '90_day_grace_period', 'flex_grace_period', 'female', '2019')) {
-  y_limit <- c(0, 0.15)
-} else if (analysis == 'young') {
-  y_limit <- c(0, 0.06)
-} else if (analysis == 'old') {
-  y_limit <- c(0, 0.45)
-} else if (analysis == 'male') {
-  y_limit <- c(0, 0.2)
-} else if (analysis == 'depressed') {
-  y_limit <- c(0., 0.12)
-} else if (analysis %in% c('not_depressed', '2021')) {
-  y_limit <- c(0, 0.16)
-} else if (analysis == '2020') {
-  y_limit <- c(0, 0.13)
-} else if (analysis == '2022') {
-  y_limit <- c(0, 0.07)
+if (exposure == 'antidepressant') {
+  y_limit <- case_when(
+    analysis == 'main' ~ c(0, 0.08),
+    analysis == '90_day_grace_period' ~ c(0, 0.08), # check
+    analysis == 'flexible_grace_period' ~ c(0, 0.08), # check
+    analysis == 'male' ~ c(0, 0.1), # check
+    analysis == 'female' ~ c(0, 0.08), # check
+    analysis == 'young' ~ c(0, 0.03), # check
+    analysis == 'old' ~ c(0, 0.2), # check
+    analysis == '2019' ~ c(0, 0.08), # check
+    analysis == '2020' ~ c(0, 0.07), # check
+    analysis == '2021' ~ c(0, 0.08), # check
+    analysis == '2022' ~ c(0, 0.03), # check
+    analysis == 'depressed' ~ c(0, 0.06), # check
+    analysis == 'not_depressed' ~ c(0, 0.08), # check
+    TRUE ~ c(NA, NA)
+  )
 }
 
-png("snri_incidence_by_analysis.png", width = 1800, height = 1800, res = 300)
+if (exposure == 'antihypertensive') {
+  y_limit <- case_when(
+    analysis == 'main' ~ c(0, 0.035),
+    analysis == 'flexible_grace_period' ~ c(0, 0.08), # check
+    analysis == 'male' ~ c(0, 0.1), # check
+    analysis == 'female' ~ c(0, 0.08), # check
+    analysis == 'young' ~ c(0, 0.03), # check
+    analysis == 'old' ~ c(0, 0.2), # check
+    analysis == '2019' ~ c(0, 0.08), # check
+    analysis == '2020' ~ c(0, 0.07), # check
+    analysis == '2021' ~ c(0, 0.08), # check
+    analysis == '2022' ~ c(0, 0.03), # check
+    analysis == 'hypertensive' ~ c(0, 0.06), # check
+    analysis == 'not_hypertensive' ~ c(0, 0.08), # check
+    TRUE ~ c(NA, NA)
+  )
+}
+
+png("ref_incidence_by_analysis.png", width = 1800, height = 1800, res = 300)
 
 par(lab = c(10, 10, 7), 
     font.lab = 2, 
@@ -489,7 +470,7 @@ plot(ref_itt,
      fun = function(x) 1 - x,
      ylab = "cumulative probability of death",
      xlab = "days since cohort entry",
-     main = "Cumulative Incidence Rate for SNRIs",
+     main = paste("Cumulative Incidence Rate in", ref_trt, "Group"),
      col = '#f56864',
      ylim = y_limit,
      conf.int = FALSE, 
@@ -531,7 +512,7 @@ dev.off()
 
 # comparing censoring models
 
-png(filename = "snri_incidence_by_model.png", width = 1800, height = 1800, res = 300)
+png(filename = "ref_incidence_by_model.png", width = 1800, height = 1800, res = 300)
 
 par(lab = c(10, 10, 7), 
     font.lab = 2, 
@@ -542,7 +523,7 @@ plot(ref_at_iptw_ipcw_str_lag,
      fun = function(x) 1 - x,
      ylab = "cumulative probability of death",
      xlab = "days since cohort entry",
-     main = "Cumulative Incidence Rate for SNRIs",
+     main = paste("Cumulative Incidence Rate in", ref_trt, "Group"),
      col = '#9a00b1',
      ylim = y_limit,
      conf.int = FALSE, 
@@ -611,7 +592,7 @@ comp_at_iptw_ipcw_pl_lag <- survfit(Surv(Tstart, Tstop, event_at_tstop) ~ 1, dat
 
 # ITT vs AT
 
-png("ssri_incidence_by_analysis.png", width = 1800, height = 1800, res = 300)
+png("comp_incidence_by_analysis.png", width = 1800, height = 1800, res = 300)
 
 par(lab = c(10, 10, 7), 
     font.lab = 2, 
@@ -622,7 +603,7 @@ plot(comp_itt,
      fun = function(x) 1 - x,
      ylab = "cumulative probability of death",
      xlab = "days since cohort entry",
-     main = "Cumulative Incidence Rate for SSRIs",
+     main = paste("Cumulative Incidence Rate in", comp_trt, "Group"),
      col = '#f56864',
      ylim = y_limit,
      conf.int = FALSE, 
@@ -664,7 +645,7 @@ dev.off()
 
 # comparing censoring models
 
-png(filename = "ssri_incidence_by_model.png", width = 1800, height = 1800, res = 300)
+png(filename = "comp_incidence_by_model.png", width = 1800, height = 1800, res = 300)
 
 par(lab = c(10, 10, 7), 
     font.lab = 2, 
@@ -675,7 +656,7 @@ plot(comp_at_iptw_ipcw_str_lag,
      fun = function(x) 1 - x,
      ylab = "cumulative probability of death",
      xlab = "days since cohort entry",
-     main = "Cumulative Incidence Rate for SSRIs",
+     main = paste("Cumulative Incidence Rate in", comp_trt, "Group"),
      col = '#9a00b1',
      ylim = y_limit,
      conf.int = FALSE, 
@@ -723,11 +704,11 @@ legend("topleft",
 
 dev.off()
 
-#### CUMULATIVE INCIDENCE ZOOM IN ####
+#### CUMULATIVE INCIDENCE ZOOM IN (365 DAYS) ####
 
-cohort_long <- readRDS(file = paste(path_results, 'cohort_analytic_at.rds', sep = '/'))
-cohort <- readRDS(file = paste(path_cohort, 'antidepressant_cohort_iptw.rds', sep = '/'))
-times_dec <- readRDS(paste(path_cohort, 'times_dec.rds', sep = '/'))
+cohort_long <- readRDS(file = paste(path_final_res, 'cohort_analytic_at.rds', sep = '/'))
+cohort <- readRDS(file = paste(path_intermediate_res, 'cohort_iptw.rds', sep = '/'))
+times_dec <- readRDS(paste(path_intermediate_res, 'times_dec.rds', sep = '/'))
 times_dec
 
 ## REFERENCE GROUP ## 
@@ -750,25 +731,47 @@ ref_at_iptw_ipcw_pl_lag <- survfit(Surv(Tstart, Tstop, event_at_tstop) ~ 1, data
 
 # ITT vs AT
 
-x_limit <- c(0, 500)
+x_limit <- c(0, 365)
 
-if (analysis %in% c('', 'main', '90_day_grace_period', 'flex_grace_period', '2019', '2020', '2021', '2022')) {
-  y_limit <- c(0, 0.05)
-} else if (analysis == 'young') {
-  y_limit <- c(0, 0.02)
-} else if (analysis == 'old') {
-  y_limit <- c(0, 0.2)
-} else if (analysis == 'male') {
-  y_limit <- c(0, 0.07)
-} else if (analysis == 'female') {
-  y_limit <- c(0, 0.04)
-} else if (analysis == 'depressed') {
-  y_limit <- c(0, 0.045)
-} else if (analysis == 'not_depressed') {
-  y_limit <- c(0, 0.055)
-} 
+if (exposure == 'antidepressant') {
+  y_limit <- case_when(
+    analysis == 'main' ~ c(0, 0.04),
+    analysis == '90_day_grace_period' ~ c(0, 0.04), # check
+    analysis == 'flexible_grace_period' ~ c(0, 0.04), # check
+    analysis == 'male' ~ c(0, 0.05), # check
+    analysis == 'female' ~ c(0, 0.04), # check
+    analysis == 'young' ~ c(0, 0.1), # check
+    analysis == 'old' ~ c(0, 0.2), # check
+    analysis == '2019' ~ c(0, 0.08), # check
+    analysis == '2020' ~ c(0, 0.03), # check
+    analysis == '2021' ~ c(0, 0.04), # check
+    analysis == '2022' ~ c(0, 0.015), # check
+    analysis == 'depressed' ~ c(0, 0.03), # check
+    analysis == 'not_depressed' ~ c(0, 0.04), # check
+    TRUE ~ c(NA, NA)
+  )
+}
 
-png("snri_incidence_by_analysis_zoom.png", width = 1800, height = 1800, res = 300)
+if (exposure == 'antihypertensive') {
+  y_limit <- case_when(
+    analysis == 'main' ~ c(0, 0.02),
+    analysis == '90_day_grace_period' ~ c(0, 0.04), # check
+    analysis == 'flexible_grace_period' ~ c(0, 0.04), # check
+    analysis == 'male' ~ c(0, 0.05), # check
+    analysis == 'female' ~ c(0, 0.04), # check
+    analysis == 'young' ~ c(0, 0.1), # check
+    analysis == 'old' ~ c(0, 0.2), # check
+    analysis == '2019' ~ c(0, 0.08), # check
+    analysis == '2020' ~ c(0, 0.03), # check
+    analysis == '2021' ~ c(0, 0.04), # check
+    analysis == '2022' ~ c(0, 0.015), # check
+    analysis == 'depressed' ~ c(0, 0.03), # check
+    analysis == 'not_depressed' ~ c(0, 0.04), # check
+    TRUE ~ c(NA, NA)
+  )
+}
+
+png("ref_incidence_by_analysis_zoom.png", width = 1800, height = 1800, res = 300)
 
 par(lab = c(10, 10, 7), 
     font.lab = 2, 
@@ -779,7 +782,7 @@ plot(ref_itt,
      fun = function(x) 1 - x,
      ylab = "cumulative probability of death",
      xlab = "days since cohort entry",
-     main = "Cumulative Incidence Rate for SNRIs",
+     main = paste("Cumulative Incidence Rate in", ref_trt, "Group"),
      col = '#f56864',
      ylim = y_limit,
      xlim = x_limit,
@@ -824,7 +827,7 @@ dev.off()
 
 # comparing censoring models
 
-png(filename = "snri_incidence_by_model_zoom.png", width = 1800, height = 1800, res = 300)
+png(filename = "ref_incidence_by_model_zoom.png", width = 1800, height = 1800, res = 300)
 
 par(lab = c(10, 10, 7), 
     font.lab = 2, 
@@ -835,7 +838,7 @@ plot(ref_at_iptw_ipcw_str_lag,
      fun = function(x) 1 - x,
      ylab = "cumulative probability of death",
      xlab = "days since cohort entry",
-     main = "Cumulative Incidence Rate for SNRIs",
+     main = paste("Cumulative Incidence Rate in", ref_trt, "Group"),
      col = '#9a00b1',
      ylim = y_limit,
      xlim = x_limit,
@@ -907,7 +910,7 @@ comp_at_iptw_ipcw_pl_lag <- survfit(Surv(Tstart, Tstop, event_at_tstop) ~ 1, dat
 
 # ITT vs AT
 
-png("ssri_incidence_by_analysis_zoom.png", width = 1800, height = 1800, res = 300)
+png("comp_incidence_by_analysis_zoom.png", width = 1800, height = 1800, res = 300)
 
 par(lab = c(10, 10, 7), 
     font.lab = 2, 
@@ -918,7 +921,7 @@ plot(comp_itt,
      fun = function(x) 1 - x,
      ylab = "cumulative probability of death",
      xlab = "days since cohort entry",
-     main = "Cumulative Incidence Rate for SSRIs",
+     main = paste("Cumulative Incidence Rate in", comp_trt, "Group"),
      col = '#f56864',
      ylim = y_limit,
      xlim = x_limit,
@@ -963,7 +966,7 @@ dev.off()
 
 # comparing censoring models
 
-png(filename = "ssri_incidence_by_model_zoom.png", width = 1800, height = 1800, res = 300)
+png(filename = "comp_incidence_by_model_zoom.png", width = 1800, height = 1800, res = 300)
 
 par(lab = c(10, 10, 7), 
     font.lab = 2, 
@@ -974,7 +977,7 @@ plot(comp_at_iptw_ipcw_str_lag,
      fun = function(x) 1 - x,
      ylab = "cumulative probability of death",
      xlab = "days since cohort entry",
-     main = "Cumulative Incidence Rate for SSRIs",
+     main = paste("Cumulative Incidence Rate in", comp_trt, "Group"),
      col = '#9a00b1',
      ylim = y_limit,
      xlim = x_limit,
@@ -1027,18 +1030,18 @@ dev.off()
 
 #### FOREST PLOT HR - STABILIZED ####
 
-cox_itt <- readRDS(paste(path_results, 'cox_itt.rds', sep = '/'))
-cox_itt_siptw <- readRDS(paste(path_results, 'cox_itt_siptw.rds', sep = '/'))
-cox_at <- readRDS(paste(path_results, 'cox_at.rds', sep = '/'))
-cox_at_siptw <- readRDS(paste(path_results, 'cox_at_siptw.rds', sep = '/'))
-cox_at_sipcw_str_lag <- readRDS(paste(path_results, 'cox_at_sipcw_str_lag.rds', sep = '/'))
-cox_at_siptw_sipcw_str_lag <- readRDS(paste(path_results, 'cox_at_siptw_sipcw_str_lag.rds', sep = '/'))
-cox_at_sipcw_str_nonlag <- readRDS(paste(path_results, 'cox_at_sipcw_str_nonlag.rds', sep = '/'))
-cox_at_siptw_sipcw_str_nonlag <- readRDS(paste(path_results, 'cox_at_siptw_sipcw_str_nonlag.rds', sep = '/'))
-cox_at_sipcw_pl_nonlag <- readRDS(paste(path_results, 'cox_at_sipcw_pl_nonlag.rds', sep = '/'))
-cox_at_siptw_sipcw_pl_nonlag <- readRDS(paste(path_results, 'cox_at_siptw_sipcw_pl_nonlag.rds', sep = '/'))
-cox_at_sipcw_pl_lag <- readRDS(paste(path_results, 'cox_at_sipcw_pl_lag.rds', sep = '/'))
-cox_at_siptw_sipcw_pl_lag <- readRDS(paste(path_results, 'cox_at_siptw_sipcw_pl_lag.rds', sep = '/'))
+cox_itt <- readRDS(paste(path_final_res, 'cox_itt.rds', sep = '/'))
+cox_itt_siptw <- readRDS(paste(path_final_res, 'cox_itt_siptw.rds', sep = '/'))
+cox_at <- readRDS(paste(path_final_res, 'cox_at.rds', sep = '/'))
+cox_at_siptw <- readRDS(paste(path_final_res, 'cox_at_siptw.rds', sep = '/'))
+cox_at_sipcw_str_lag <- readRDS(paste(path_final_res, 'cox_at_sipcw_str_lag.rds', sep = '/'))
+cox_at_siptw_sipcw_str_lag <- readRDS(paste(path_final_res, 'cox_at_siptw_sipcw_str_lag.rds', sep = '/'))
+cox_at_sipcw_str_nonlag <- readRDS(paste(path_final_res, 'cox_at_sipcw_str_nonlag.rds', sep = '/'))
+cox_at_siptw_sipcw_str_nonlag <- readRDS(paste(path_final_res, 'cox_at_siptw_sipcw_str_nonlag.rds', sep = '/'))
+cox_at_sipcw_pl_nonlag <- readRDS(paste(path_final_res, 'cox_at_sipcw_pl_nonlag.rds', sep = '/'))
+cox_at_siptw_sipcw_pl_nonlag <- readRDS(paste(path_final_res, 'cox_at_siptw_sipcw_pl_nonlag.rds', sep = '/'))
+cox_at_sipcw_pl_lag <- readRDS(paste(path_final_res, 'cox_at_sipcw_pl_lag.rds', sep = '/'))
+cox_at_siptw_sipcw_pl_lag <- readRDS(paste(path_final_res, 'cox_at_siptw_sipcw_pl_lag.rds', sep = '/'))
 
 cox_result_chart <- data.frame(matrix(nrow = 12, ncol = 3))
 colnames(cox_result_chart) <- c('estimate', 'lower_ci', 'upper_ci')
@@ -1095,7 +1098,7 @@ cox_result_chart[12, 'lower_ci'] <- exp(confint(cox_at_siptw_sipcw_pl_lag))[1]
 cox_result_chart[12, 'upper_ci'] <- exp(confint(cox_at_siptw_sipcw_pl_lag))[2]
 
 cox_result_chart <- cbind(model = row.names(cox_result_chart), cox_result_chart, row.names = NULL)
-write_xlsx(cox_result_chart, paste(path_results, 'cox_ratios_stab.xlsx', sep ='/'))
+write_xlsx(cox_result_chart, paste(path_final_res, 'cox_ratios_stab.xlsx', sep ='/'))
 
 summary_cox_results <- cox_result_chart[c(2,4,6,8,10,12),]
 model_order <- rev(c("ITT (sIPTW)", "AT (sIPTW)", "AT (sIPTW + stratified lagged sIPCW)", "AT (sIPTW + stratified non-lagged sIPCW)", 
@@ -1136,12 +1139,12 @@ y_labels <- rev(paste(
 ))
 
 # in case some values are exactly the same for labeling:
-# y_labels <- rev(paste(
-#   c(round(summary_cox_results$estimate, 3)),
-#   ' (',round(summary_cox_results$lower_ci, 3),', ',
-#   round(summary_cox_results$upper_ci, 3), ')',
-#   sep = ''
-# ))
+y_labels <- rev(paste(
+  c(round(summary_cox_results$estimate, 3)),
+  ' (',round(summary_cox_results$lower_ci, 3),', ',
+  round(summary_cox_results$upper_ci, 3), ')',
+  sep = ''
+))
 
 y_labels
 
@@ -1178,18 +1181,18 @@ dev.off()
 
 #### FOREST PLOT HR - UNSTABILIZED ####
 
-cox_itt <- readRDS(paste(path_results, 'cox_itt.rds', sep = '/'))
-cox_itt_iptw <- readRDS(paste(path_results, 'cox_itt_iptw.rds', sep = '/'))
-cox_at <- readRDS(paste(path_results, 'cox_at.rds', sep = '/'))
-cox_at_iptw <- readRDS(paste(path_results, 'cox_at_iptw.rds', sep = '/'))
-cox_at_ipcw_str_lag <- readRDS(paste(path_results, 'cox_at_ipcw_str_lag.rds', sep = '/'))
-cox_at_iptw_ipcw_str_lag <- readRDS(paste(path_results, 'cox_at_iptw_ipcw_str_lag.rds', sep = '/'))
-cox_at_ipcw_str_nonlag <- readRDS(paste(path_results, 'cox_at_ipcw_str_nonlag.rds', sep = '/'))
-cox_at_iptw_ipcw_str_nonlag <- readRDS(paste(path_results, 'cox_at_iptw_ipcw_str_nonlag.rds', sep = '/'))
-cox_at_ipcw_pl_nonlag <- readRDS(paste(path_results, 'cox_at_ipcw_pl_nonlag.rds', sep = '/'))
-cox_at_iptw_ipcw_pl_nonlag <- readRDS(paste(path_results, 'cox_at_iptw_ipcw_pl_nonlag.rds', sep = '/'))
-cox_at_ipcw_pl_lag <- readRDS(paste(path_results, 'cox_at_ipcw_pl_lag.rds', sep = '/'))
-cox_at_iptw_ipcw_pl_lag <- readRDS(paste(path_results, 'cox_at_iptw_ipcw_pl_lag.rds', sep = '/'))
+cox_itt <- readRDS(paste(path_final_res, 'cox_itt.rds', sep = '/'))
+cox_itt_iptw <- readRDS(paste(path_final_res, 'cox_itt_iptw.rds', sep = '/'))
+cox_at <- readRDS(paste(path_final_res, 'cox_at.rds', sep = '/'))
+cox_at_iptw <- readRDS(paste(path_final_res, 'cox_at_iptw.rds', sep = '/'))
+cox_at_ipcw_str_lag <- readRDS(paste(path_final_res, 'cox_at_ipcw_str_lag.rds', sep = '/'))
+cox_at_iptw_ipcw_str_lag <- readRDS(paste(path_final_res, 'cox_at_iptw_ipcw_str_lag.rds', sep = '/'))
+cox_at_ipcw_str_nonlag <- readRDS(paste(path_final_res, 'cox_at_ipcw_str_nonlag.rds', sep = '/'))
+cox_at_iptw_ipcw_str_nonlag <- readRDS(paste(path_final_res, 'cox_at_iptw_ipcw_str_nonlag.rds', sep = '/'))
+cox_at_ipcw_pl_nonlag <- readRDS(paste(path_final_res, 'cox_at_ipcw_pl_nonlag.rds', sep = '/'))
+cox_at_iptw_ipcw_pl_nonlag <- readRDS(paste(path_final_res, 'cox_at_iptw_ipcw_pl_nonlag.rds', sep = '/'))
+cox_at_ipcw_pl_lag <- readRDS(paste(path_final_res, 'cox_at_ipcw_pl_lag.rds', sep = '/'))
+cox_at_iptw_ipcw_pl_lag <- readRDS(paste(path_final_res, 'cox_at_iptw_ipcw_pl_lag.rds', sep = '/'))
 
 cox_result_chart <- data.frame(matrix(nrow = 12, ncol = 3))
 colnames(cox_result_chart) <- c('estimate', 'lower_ci', 'upper_ci')
@@ -1246,7 +1249,7 @@ cox_result_chart[12, 'lower_ci'] <- exp(confint(cox_at_iptw_ipcw_pl_lag))[1]
 cox_result_chart[12, 'upper_ci'] <- exp(confint(cox_at_iptw_ipcw_pl_lag))[2]
 
 cox_result_chart <- cbind(model = row.names(cox_result_chart), cox_result_chart, row.names = NULL)
-write_xlsx(cox_result_chart, paste(path_results, 'cox_ratios_unstab.xlsx', sep ='/'))
+write_xlsx(cox_result_chart, paste(path_final_res, 'cox_ratios_unstab.xlsx', sep ='/'))
 
 summary_cox_results <- cox_result_chart[c(2,4,6,8,10,12),]
 model_order <- rev(c("ITT (IPTW)", "AT (IPTW)", "AT (IPTW + stratified lagged IPCW)", "AT (IPTW + stratified non-lagged IPCW)", 
@@ -1286,12 +1289,12 @@ y_labels <- rev(paste(
 ))
 
 # in case some values are exactly the same for labeling:
-# y_labels <- rev(paste(
-#   c(round(summary_cox_results$estimate, 3)),
-#   ' (',round(summary_cox_results$lower_ci, 3),', ',
-#   round(summary_cox_results$upper_ci, 3), ')',
-#   sep = ''
-# ))
+y_labels <- rev(paste(
+  c(round(summary_cox_results$estimate, 3)),
+  ' (',round(summary_cox_results$lower_ci, 3),', ',
+  round(summary_cox_results$upper_ci, 3), ')',
+  sep = ''
+))
 
 y_labels
 
@@ -1327,8 +1330,8 @@ dev.off()
 
 #### CENSORING DISTRIBUTION ####
 
-cohort <- readRDS(file = paste(path_cohort, 'antidepressant_cohort_iptw.rds', sep = '/'))
-times_dec <- readRDS(paste(path_main, 'times_dec.rds', sep = '/'))
+cohort <- readRDS(file = paste(path_intermediate_res, 'cohort_iptw.rds', sep = '/'))
+times_dec <- readRDS(paste(path_intermediate_res_main, 'times_dec.rds', sep = '/'))
 
 cens_cohort <- cohort %>% 
   filter(censor == 1) %>% 
@@ -1449,8 +1452,8 @@ ggsave("grid_cens_plots.png", plot = grid_cens_plots, width = 8, height = 10, un
 #### FOREST PLOT IRR - UNSTABILIZED ####
 
 # choose one of saved CIs (from boot function or computed manually)
-incidence_rates <- readRDS(paste(path_results, 'incidence_rates_ci_fx.rds', sep ='/'))
-#incidence_rates <- readRDS(paste(path_results, 'incidence_rates_ci.rds', sep ='/'))
+incidence_rates <- readRDS(paste(path_final_res, 'incidence_rates_ci_fx.rds', sep ='/'))
+#incidence_rates <- readRDS(paste(path_final_res, 'incidence_rates_ci.rds', sep ='/'))
 
 incidence_rates_chart <- incidence_rates[c(2,4,6,8,10,12),]
 incidence_rates_chart %<>% select(-variable)
@@ -1503,12 +1506,12 @@ y_labels <- rev(paste(
 ))
 
 # in case some values are exactly the same for labeling:
-# y_labels <- rev(paste(
-#   c(round(incidence_rates_chart$estimate, 3)),
-#   ' (',round(incidence_rates_chart$lower_ci, 3),', ',
-#   round(incidence_rates_chart$upper_ci, 3), ')',
-#   sep = ''
-# ))
+y_labels <- rev(paste(
+  c(round(incidence_rates_chart$estimate, 3)),
+  ' (',round(incidence_rates_chart$lower_ci, 3),', ',
+  round(incidence_rates_chart$upper_ci, 3), ')',
+  sep = ''
+))
 
 y_labels
 
@@ -1543,8 +1546,8 @@ dev.off()
 
 #### FOREST PLOT IRR - STABILIZED ####
 
-incidence_rates <- readRDS(paste(path_results, 'incidence_rates_ci_fx.rds', sep ='/'))
-#incidence_rates <- readRDS(paste(path_results, 'incidence_rates_ci.rds', sep ='/'))
+incidence_rates <- readRDS(paste(path_final_res, 'incidence_rates_ci_fx.rds', sep ='/'))
+#incidence_rates <- readRDS(paste(path_final_res, 'incidence_rates_ci.rds', sep ='/'))
 
 incidence_rates_chart <- incidence_rates[c(25,26,28,30,32,34),]
 incidence_rates_chart %<>% select(-variable)
@@ -1597,12 +1600,12 @@ y_labels <- rev(paste(
 ))
 
 # in case some values are exactly the same for labeling:
-# y_labels <- rev(paste(
-#   c(round(incidence_rates_chart$estimate, 3)),
-#   ' (',round(incidence_rates_chart$lower_ci, 3),', ',
-#   round(incidence_rates_chart$upper_ci, 3), ')',
-#   sep = ''
-# ))
+y_labels <- rev(paste(
+  c(round(incidence_rates_chart$estimate, 3)),
+  ' (',round(incidence_rates_chart$lower_ci, 3),', ',
+  round(incidence_rates_chart$upper_ci, 3), ')',
+  sep = ''
+))
 
 y_labels
 
@@ -1639,7 +1642,7 @@ dev.off()
 #### HISTOGRAM OF AGE OVER TIME BY TRT ####
 
 # Proportion young and old by interval - percentile age groups
-cohort_long <- readRDS(file = paste(path_cohort, 'antidepressant_cohort_ipcw.rds', sep = '/'))
+cohort_long <- readRDS(file = paste(path_intermediate_res, 'cohort_ipcw.rds', sep = '/'))
 
 age_dist <- quantile(cohort$age_at_entry, probs = c(0.25, 0.5, 0.75))
 age_dist
@@ -1651,7 +1654,7 @@ cohort_long %<>% mutate(combo_weight = iptw*ipcw_pl_nonlag,
                         age_75 = if_else(age_at_entry >=age_dist[[3]], 1, 0))
 
 hist_age_perc <- cohort_long %>% 
-  group_by(trt, dec) %>% 
+  group_by(trt_dummy, dec) %>% 
   summarize(prop_25 = sum(age_25 == 1) / n(), 
             prop_25_50 = sum(age_25_50 == 1) / n(),
             prop_50_75 = sum(age_50_75 == 1) / n(),
@@ -1660,12 +1663,12 @@ hist_age_perc <- cohort_long %>%
 df_long <- pivot_longer(hist_age_perc, cols = c(prop_25, prop_25_50, prop_50_75, prop_75), 
                         names_to = "age_group", 
                         values_to = "proportion")
-
+# unweighted
 hist_age_perc <- ggplot(df_long, aes(x = factor(dec), y = proportion, fill = age_group)) +
   geom_bar(stat = "identity", position = "stack") +
   scale_fill_manual(values = c('#9a00b1', '#f56864', '#f9a463', '#f8e4a7'),
                     labels = c('<25%', '25-50%', '50-75%', '>75%')) +
-  facet_wrap(~ trt, labeller = as_labeller(c('snri' = 'SNRI', 'ssri' = 'SSRI'))) + 
+  facet_wrap(~ trt_dummy, labeller = as_labeller(c('0' = ref_trt, '1' = comp_trt))) + 
   labs(title = "Age Groups Over Time by Treatment",
        x = "Interval",
        y = "Proportion",
@@ -1677,24 +1680,26 @@ hist_age_perc <- ggplot(df_long, aes(x = factor(dec), y = proportion, fill = age
 hist_age_perc
 ggsave("hist_age_perc.png", plot = hist_age_perc, width = 6, height = 3, units = "in", bg = 'white')
 
-hist_age_perc_weighted <- cohort_long %>% # weighted
-  group_by(trt, dec) %>%
+
+# weighted with IPTW
+hist_age_perc_weighted_iptw <- cohort_long %>% # weighted with IPTW
+  group_by(trt_dummy, dec) %>%
   summarize(
-    prop_25 = sum(combo_weight[age_25==1]) / sum(combo_weight),
-    prop_25_50 = sum(combo_weight[age_25_50==1]) / sum(combo_weight),
-    prop_50_75 = sum(combo_weight[age_50_75==1]) / sum(combo_weight),
-    prop_75 = sum(combo_weight[age_75==1]) / sum(combo_weight),
+    prop_25 = sum(iptw[age_25==1]) / sum(iptw),
+    prop_25_50 = sum(iptw[age_25_50==1]) / sum(iptw),
+    prop_50_75 = sum(iptw[age_50_75==1]) / sum(iptw),
+    prop_75 = sum(iptw[age_75==1]) / sum(iptw),
   )
 
-df_long <- pivot_longer(hist_age_perc_weighted, cols = c(prop_25, prop_25_50, prop_50_75, prop_75), 
+df_long <- pivot_longer(hist_age_perc_weighted_iptw, cols = c(prop_25, prop_25_50, prop_50_75, prop_75), 
                         names_to = "age_group", 
                         values_to = "proportion")
 
-hist_age_perc_weighted <- ggplot(df_long, aes(x = factor(dec), y = proportion, fill = age_group)) +
+hist_age_perc_weighted_iptw <- ggplot(df_long, aes(x = factor(dec), y = proportion, fill = age_group)) +
   geom_bar(stat = "identity", position = "stack") +
   scale_fill_manual(values = c('#9a00b1', '#f56864', '#f9a463', '#f8e4a7'),
                     labels = c('<25%', '25-50%', '50-75%', '>75%')) +
-  facet_wrap(~ trt, labeller = as_labeller(c('snri' = 'SNRI', 'ssri' = 'SSRI'))) + 
+  facet_wrap(~ trt_dummy, labeller = as_labeller(c('0' = ref_trt, '1' = comp_trt))) + 
   labs(title = "Age Groups Over Time by Treatment (IPTW + IPCW)",
        x = "Interval",
        y = "Proportion",
@@ -1703,15 +1708,46 @@ hist_age_perc_weighted <- ggplot(df_long, aes(x = factor(dec), y = proportion, f
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank())
 
-hist_age_perc_weighted
-ggsave("hist_age_perc_weighted.png", plot = hist_age_perc_weighted, width = 6, height = 3, units = "in", bg = 'white')
+hist_age_perc_weighted_iptw
+ggsave("hist_age_perc_weighted_iptw.png", plot = hist_age_perc_weighted_iptw, width = 6, height = 3, units = "in", bg = 'white')
+
+# weighted with IPTW + IPCW
+hist_age_perc_weighted_combo <- cohort_long %>% 
+  group_by(trt_dummy, dec) %>%
+  summarize(
+    prop_25 = sum(combo_weight[age_25==1]) / sum(combo_weight),
+    prop_25_50 = sum(combo_weight[age_25_50==1]) / sum(combo_weight),
+    prop_50_75 = sum(combo_weight[age_50_75==1]) / sum(combo_weight),
+    prop_75 = sum(combo_weight[age_75==1]) / sum(combo_weight),
+  )
+
+df_long <- pivot_longer(hist_age_perc_weighted_combo, cols = c(prop_25, prop_25_50, prop_50_75, prop_75), 
+                        names_to = "age_group", 
+                        values_to = "proportion")
+
+hist_age_perc_weighted_combo <- ggplot(df_long, aes(x = factor(dec), y = proportion, fill = age_group)) +
+  geom_bar(stat = "identity", position = "stack") +
+  scale_fill_manual(values = c('#9a00b1', '#f56864', '#f9a463', '#f8e4a7'),
+                    labels = c('<25%', '25-50%', '50-75%', '>75%')) +
+  facet_wrap(~ trt_dummy, labeller = as_labeller(c('0' = ref_trt, '1' = comp_trt))) + 
+  labs(title = "Age Groups Over Time by Treatment (IPTW + IPCW)",
+       x = "Interval",
+       y = "Proportion",
+       fill = "Age Group") +
+  theme_minimal() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank())
+
+hist_age_perc_weighted_combo
+ggsave("hist_age_perc_weighted_combo.png", plot = hist_age_perc_weighted_combo, width = 6, height = 3, units = "in", bg = 'white')
 
 # Proportion young and old by decile - age groups
-cohort_long <- readRDS(file = paste(path_cohort, 'antidepressant_cohort_ipcw.rds', sep = '/'))
+# does not work for antihypertensive yet -- need to update new age groups
+cohort_long <- readRDS(file = paste(path_intermediate_res, 'cohort_ipcw.rds', sep = '/'))
 cohort_long %<>% mutate(combo_weight = iptw*ipcw_pl_nonlag)
 
 hist_age <- cohort_long %>% 
-  group_by(trt, dec) %>% 
+  group_by(trt_dummy, dec) %>% 
   summarize(group_18_24 = sum(age_group == '18-24') / n(), 
             group_25_34 = sum(age_group == '25-34') / n(),
             group_35_44 = sum(age_group == '35-44') / n(),
@@ -1731,7 +1767,7 @@ hist_age <- ggplot(df_long, aes(x = factor(dec), y = proportion, fill = age_grou
   geom_bar(stat = "identity", position = "stack") +
   scale_fill_manual(values = c('#6a00a8', '#9a00b1', '#d53e4f', '#f56864', '#f9a463', '#fdbd22','#f8e4a7', '#E0E0E0'),
                     labels = c('18-24', '25-34', '35-44', '45-54', '55-64', '65-74', '75-84', '>85')) +
-  facet_wrap(~ trt, labeller = as_labeller(c('snri' = 'SNRI', 'ssri' = 'SSRI'))) + 
+  facet_wrap(~ trt_dummy, labeller = as_labeller(c('0' = ref_trt, '1' = comp_trt))) + 
   labs(title = "Age Groups Over Time by Treatment",
        x = "Interval",
        y = "Proportion",
@@ -1821,7 +1857,7 @@ ggsave("hist_age_weighted_combo.png", plot = hist_age_weighted_combo, width = 6,
 
 # Proportion of censoring by treatment over time
 hist_cens <- cohort_long %>% # unweighted
-  group_by(trt, dec) %>% 
+  group_by(trt_dummy, dec) %>% 
   summarize(prop_cens = sum(uncensored_at_tstop == 0) / n(), 
             prop_uncens = sum(uncensored_at_tstop == 1) / n())
 
@@ -1833,7 +1869,7 @@ hist_cens <- ggplot(df_long, aes(x = factor(dec), y = proportion, fill = censori
   geom_bar(stat = "identity", position = "stack") +
   scale_fill_manual(values = c("#6a00a8", "#f56864"),
                     labels = c('uncensored', 'censored')) +
-  facet_wrap(~ trt, labeller = as_labeller(c('snri' = 'SNRI', 'ssri' = 'SSRI'))) + 
+  facet_wrap(~ trt_dummy, labeller = as_labeller(c('0' = ref_trt, '1' = comp_trt))) + 
   labs(title = "Status Over Time by Treatment",
        x = "Interval",
        y = "Proportion",
@@ -1846,7 +1882,7 @@ hist_cens
 ggsave("hist_cens.png", plot = hist_cens, width = 6, height = 3, units = "in", bg = 'white')
 
 hist_cens_weighted <- cohort_long %>% # IPTW + IPCW weighted
-  group_by(trt, dec) %>% 
+  group_by(trt_dummy, dec) %>% 
   summarize(prop_cens = sum(combo_weight[uncensored_at_tstop == 0]) / sum(combo_weight), 
             prop_uncens = sum(combo_weight[uncensored_at_tstop == 1]) / sum(combo_weight))
 
@@ -1858,7 +1894,7 @@ hist_cens_weighted <- ggplot(df_long, aes(x = factor(dec), y = proportion, fill 
   geom_bar(stat = "identity", position = "stack") +
   scale_fill_manual(values = c("#6a00a8", "#f56864"),
                     labels = c('censored', 'uncensored')) +
-  facet_wrap(~ trt, labeller = as_labeller(c('snri' = 'SNRI', 'ssri' = 'SSRI'))) + 
+  facet_wrap(~ trt_dummy, labeller = as_labeller(c('0' = ref_trt, '1' = comp_trt))) + 
   labs(title = "Status Over Time by Treatment (IPTW + IPCW)",
        x = "Interval",
        y = "Proportion",
@@ -1875,7 +1911,7 @@ ggsave("hist_cens_weighted.png", plot = hist_cens_weighted, width = 6, height = 
 # Proportion of discontinuation by age and treatment group
 hist_cens_age <- cohort %>% 
   mutate(age_round = as.factor(round(age_at_entry / 10) * 10)) %>% 
-  group_by(trt, age_round) %>% 
+  group_by(trt_dummy, age_round) %>% 
   summarize(prop_cens = sum(censor == 0) / n(), 
             prop_uncens = sum(censor == 1) / n())
 
@@ -1889,7 +1925,7 @@ hist_cens_age <- ggplot(df_long, aes(x = factor(age_round), y = proportion, fill
   geom_bar(stat = "identity", position = "stack") +
   scale_fill_manual(values = c("#6a00a8", "#f56864"),
                     labels = c('uncensored', 'censored')) +
-  facet_wrap(~ trt, labeller = as_labeller(c('snri' = 'SNRI', 'ssri' = 'SSRI'))) + 
+  facet_wrap(~ trt_dummy, labeller = as_labeller(c('0' = ref_trt, '1' = comp_trt))) + 
   labs(title = "Status by Age and Treatment",
        x = "Age",
        y = "Proportion",
@@ -1902,23 +1938,23 @@ hist_cens_age <- ggplot(df_long, aes(x = factor(age_round), y = proportion, fill
 hist_cens_age
 ggsave("hist_cens_age.png", plot = hist_cens_age, width = 6, height = 3, units = "in", bg = 'white')
 
-hist_cens_age_weighted <- cohort_long %>% # weighted
+hist_cens_age_weighted_iptw <- cohort_long %>% # weighted with IPTW
   mutate(age_round = as.factor(round(age_at_entry / 10) * 10)) %>% 
-  group_by(trt, age_round) %>% 
+  group_by(trt_dummy, age_round) %>% 
   summarize(prop_cens = sum(iptw[censor == 0]) / sum(iptw), 
             prop_uncens = sum(iptw[censor == 1]) / sum(iptw))
 
-df_long <- pivot_longer(hist_cens_age_weighted, cols = c(prop_cens, prop_uncens), 
+df_long <- pivot_longer(hist_cens_age_weighted_iptw, cols = c(prop_cens, prop_uncens), 
                         names_to = "censoring", 
                         values_to = "proportion")
 
 df_long$age_round <- factor(df_long$age_round, levels = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 110))
 
-hist_cens_age_weighted <- ggplot(df_long, aes(x = factor(age_round), y = proportion, fill = censoring)) +
+hist_cens_age_weighted_iptw <- ggplot(df_long, aes(x = factor(age_round), y = proportion, fill = censoring)) +
   geom_bar(stat = "identity", position = "stack") +
   scale_fill_manual(values = c("#6a00a8", "#f56864"),
                     labels = c('censored', 'uncensored')) +
-  facet_wrap(~ trt, labeller = as_labeller(c('snri' = 'SNRI', 'ssri' = 'SSRI'))) + 
+  facet_wrap(~ trt_dummy, labeller = as_labeller(c('0' = ref_trt, '1' = comp_trt))) + 
   labs(title = "Status by Age and Treatment (IPTW)",
        x = "Age",
        y = "Proportion",
@@ -1928,12 +1964,12 @@ hist_cens_age_weighted <- ggplot(df_long, aes(x = factor(age_round), y = proport
         panel.grid.minor = element_blank(),
         axis.text.x = element_text(size = 7.5))
 
-hist_cens_age_weighted
-ggsave("hist_cens_age_weighted.png", plot = hist_cens_age_weighted, width = 6, height = 3, units = "in", bg = 'white')
+hist_cens_age_weighted_iptw
+ggsave("hist_cens_age_weighted_iptw.png", plot = hist_cens_age_weighted_iptw, width = 6, height = 3, units = "in", bg = 'white')
 
 #### HISTOGRAM OF BASELINE DEPRESSION BY AGE GROUP ####
 
-cohort <- readRDS(file = paste(path_cohort, 'antidepressant_cohort_iptw.rds', sep = '/'))
+cohort <- readRDS(file = paste(path_intermediate_res, 'cohort_iptw.rds', sep = '/'))
 cohort %<>% mutate(binary_age_grp = if_else(age_at_entry >= 65, 'patients ≥65', 'patients <65'))
 
 depression_by_age <- cohort %>% # unweighted
@@ -1989,7 +2025,7 @@ ggsave("hist_depression_by_age_iptw.png", plot = hist_depression_by_age_iptw, wi
 
 #### HISTOGRAM OF BASELINE DEPRESSION OVER TIME BY TREATMENT ####
 
-cohort_long <- readRDS(file = paste(path_cohort, 'antidepressant_cohort_ipcw.rds', sep = '/'))
+cohort_long <- readRDS(file = paste(path_intermediate_res, 'cohort_ipcw.rds', sep = '/'))
 cohort_long %<>% mutate(combo_weight = iptw*ipcw_pl_nonlag)
 
 dep_over_time <- cohort_long %>% 
@@ -2049,18 +2085,18 @@ ggsave("hist_dep_over_time_iptw.png", plot = hist_dep_over_time_iptw, width = 6,
 
 
 
-dep_over_time_weighted <- cohort_long %>% # weighted with IPTW + IPCW
+dep_over_time_weighted_combo <- cohort_long %>% # weighted with IPTW + IPCW
   group_by(trt, dec) %>%
   summarize(
     prop_dep = sum(combo_weight[depression_base == 1]) / sum(combo_weight),
     prop_no_dep = sum(combo_weight[depression_base == 0]) / sum(combo_weight)
   )
 
-dep_over_time_weighted_long <- pivot_longer(dep_over_time_weighted, cols = c(prop_dep, prop_no_dep), 
+dep_over_time_weighted_combo_long <- pivot_longer(dep_over_time_weighted_combo, cols = c(prop_dep, prop_no_dep), 
                                         names_to = "depression_status", 
                                         values_to = "proportion")
 
-hist_dep_over_time_weighted <- ggplot(dep_over_time_weighted_long, aes(x = factor(dec), y = proportion, fill = depression_status)) +
+hist_dep_over_time_weighted_combo <- ggplot(dep_over_time_weighted_combo_long, aes(x = factor(dec), y = proportion, fill = depression_status)) +
   geom_bar(stat = "identity", position = "stack") +
   scale_fill_manual(values = c('#6a00a8', '#f9a463'),
                     labels = c('Depression', 'No depression')) +
@@ -2073,5 +2109,5 @@ hist_dep_over_time_weighted <- ggplot(dep_over_time_weighted_long, aes(x = facto
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank())
 
-hist_dep_over_time_weighted
-ggsave("hist_dep_over_time_weighted.png", plot = hist_dep_over_time_weighted, width = 6, height = 3, units = "in", bg = 'white')
+hist_dep_over_time_weighted_combo
+ggsave("hist_dep_over_time_weighted_combo.png", plot = hist_dep_over_time_weighted_combo, width = 6, height = 3, units = "in", bg = 'white')
