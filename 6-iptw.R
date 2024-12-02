@@ -19,17 +19,12 @@
 
 #### SPECIFY ANALYSIS ####
 
-# cohort: antidepressant, antihypertensive, antidiabetic
-exposure <- 'antihypertensive'
-
-# outcome: all-cause mortality, suicidal ideation
+# cohort: antidepressant, antihypertensive
+exposure <- 'antidepressant'
 outcome <- 'all-cause mortality'
 
-# analysis: main, flexible_grace_period, 90_day_grace_period, male, female
-# young, old, 2019, 2020, 2021, 2022
-# depressed, not_depressed
-# hypertensive, not_hypertensive
-analysis <- 'main'
+# analysis: main, flexible_grace_period, 90_day_grace_period, male, female, young, old
+analysis <- 'old'
 
 #### LOAD PACKAGES ####
 
@@ -48,8 +43,9 @@ library(broom)
 
 #### DEFINE PATHS ####
 
-path_intermediate_res <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, analysis, 'intermediate', sep = '/')
-path_final_res <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, analysis, 'final', sep = '/')
+path_intermediate_res <- paste('Z:/EPI/Protocol 24_004042/Gwen - ipcw_methods/results', exposure, outcome, analysis, 'intermediate', sep = '/')
+path_final_res <- paste('Z:/EPI/Protocol 24_004042/Gwen - ipcw_methods/results', exposure, outcome, analysis, 'final', sep = '/')
+path_intermediate_res_main <- paste('Z:/EPI/Protocol 24_004042/Gwen - ipcw_methods/results', exposure, outcome, 'main', 'intermediate', sep = '/')
 
 cohort <- readRDS(file = paste(path_intermediate_res, 'cohort_update_cov.rds', sep = '/'))
 setwd(path_intermediate_res)
@@ -59,19 +55,14 @@ cat(paste("Date:", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), '\n'), file = iptw_d
 
 #### SET UP ####
 
-covariates <- readRDS(file = paste(path_intermediate_res, 'covariates.rds', sep = '/'))
-comorbidities <- readRDS(file = paste(path_intermediate_res, 'comorbidities.rds', sep = '/'))
-base_comorb <- readRDS(file = paste(path_intermediate_res, 'base_comorb.rds', sep = '/'))
-dec_comorb <- readRDS(file = paste(path_intermediate_res, 'dec_comorb.rds', sep = '/'))
+covariates <- readRDS(file = paste(path_intermediate_res_main, 'covariates.rds', sep = '/'))
+comorbidities <- readRDS(file = paste(path_intermediate_res_main, 'comorbidities.rds', sep = '/'))
+base_comorb <- readRDS(file = paste(path_intermediate_res_main, 'base_comorb.rds', sep = '/'))
 
 base_variables <- c(covariates, base_comorb)
 
 if (analysis == 'male' | analysis == 'female') {
   base_variables <- base_variables[!base_variables %in% c('sex')]
-} else if (analysis == '2019' | analysis == '2020' | analysis == '2021' | analysis == '2022') {
-  base_variables <- base_variables[!base_variables %in% c('year', 'month_year')]
-} else if (analysis == 'depressed' | analysis == 'not_depressed') {
-  base_variables <- base_variables[!base_variables %in% c('depression_base')]
 } else if (analysis == 'young' | analysis == 'old') {
   cohort$age_group <- droplevels(cohort$age_group)
 }
@@ -118,15 +109,48 @@ base_model <- reformulate(base_variables, 'trt_dummy')
 # add  interaction between age & anxiety for antidepressant group
 if (exposure == 'antidepressant') {
   inter_model <- as.formula(paste('trt_dummy', "~", paste(c(base_variables, 'age_group*anxiety_base'), collapse = " + ")))
-  model <- base_model
-  
-  if (analysis == 'depressed' | analysis == 'not_depressed') {
-    model <- base_model
-  }
+  model <- inter_model
 }
 
 # add interaction between age & heart failure/ischemic heart disease/MI for antihypertensive group
 if (exposure == 'antihypertensive') {
+  inter_model <- as.formula(paste('trt_dummy', "~", 
+                                  paste(c(base_variables, 
+                                          'age_group*heart_failure_base', 
+                                          'age_group*ischemic_heart_disease_base', 
+                                          'age_group*myocardial_infarction_base',
+                                          'age_group*lvh_base',
+                                          'age_group*valvular_heart_disease_base',
+                                          'age_group*arrhythmia_base',
+                                          'heart_failure_base*heart_failure_base',
+                                          'heart_failure_base*sex',
+                                          'heart_failure_base*deprivation',
+                                          'heart_failure_base*ethnicity',
+                                          'heart_failure_base*year',
+                                          'heart_failure_base*myocardial_infarction_base'), 
+                                        collapse = " + ")))
+  model <- inter_model
+}
+
+if (exposure == 'antihypertensive' && (analysis == 'male' | analysis == 'female')) {
+  inter_model <- as.formula(paste('trt_dummy', "~", 
+                                  paste(c(base_variables, 
+                                          'age_group*heart_failure_base', 
+                                          'age_group*ischemic_heart_disease_base', 
+                                          'age_group*myocardial_infarction_base',
+                                          'age_group*lvh_base',
+                                          'age_group*valvular_heart_disease_base',
+                                          'age_group*arrhythmia_base',
+                                          'heart_failure_base*heart_failure_base',
+                                          'heart_failure_base*deprivation',
+                                          'heart_failure_base*ethnicity',
+                                          'heart_failure_base*year',
+                                          'heart_failure_base*myocardial_infarction_base'), 
+                                        collapse = " + ")))
+  model <- inter_model
+}
+
+if (exposure == 'antihypertensive' && analysis %in% c('2019', '2020' , '2021', '2022')) {
   inter_model <- as.formula(paste('trt_dummy', "~", 
                                   paste(c(base_variables, 
                                           'age_group*heart_failure_base', 

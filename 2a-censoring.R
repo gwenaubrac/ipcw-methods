@@ -22,7 +22,7 @@
 
 #### SPECIFY ANALYSIS ####
 
-# cohort: antidepressant, antihypertensive, antidiabetic
+# cohort: antidepressant, antihypertensive
 exposure <- 'antidepressant'
 
 #### LOAD PACKAGES ####
@@ -40,7 +40,7 @@ library(writexl)
 
 #### DEFINE PATHS ####
 
-path_intermediate_res <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, 'all-cause mortality', 'main', 'intermediate', sep = '/')
+path_intermediate_res <- paste('Z:/EPI/Protocol 24_004042/Gwen - ipcw_methods/results', exposure, 'all-cause mortality', 'main', 'intermediate', sep = '/')
 cohort <- readRDS(file = paste(path_intermediate_res, 'cohort_creation.rds', sep = '/'))
 rx_for_exposure <- readRDS(file = paste(path_intermediate_res, 'rx_for_exposure.rds', sep ='/'))
 

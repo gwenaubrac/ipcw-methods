@@ -27,14 +27,12 @@
 
 #### SPECIFY ANALYSIS ####
 
-# cohort: antidepressant, antihypertensive, antidiabetic
+# cohort: antidepressant, antihypertensive
 exposure <- 'antihypertensive'
-
-# outcome: all-cause mortality, suicidal ideation
 outcome <- 'all-cause mortality'
 
 # analysis: main, flexible_grace_period, 90_day_grace_period
-analysis <- 'main'
+analysis <- 'flexible_grace_period'
 
 #### LOAD PACKAGES ####
 
@@ -49,15 +47,15 @@ library(data.table)
 
 #### DEFINE PATHS ####
 
-path_intermediate_res_main <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, 'main', 'intermediate', sep = '/')
-path_intermediate_res <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, analysis, 'intermediate', sep = '/')
+path_intermediate_res_main <- paste('Z:/EPI/Protocol 24_004042/Gwen - ipcw_methods/results', exposure, outcome, 'main', 'intermediate', sep = '/')
+path_intermediate_res <- paste('Z:/EPI/Protocol 24_004042/Gwen - ipcw_methods/results', exposure, outcome, analysis, 'intermediate', sep = '/')
 
 path_cprdA <- "Z:/EPI/Protocol 24_004042/dataA" 
 path_cprdB <- "Z:/EPI/Protocol 24_004042/dataB" 
 path_cprdC <- "Z:/EPI/Protocol 24_004042/dataC (no followup)"
 
-path_comorb_cprd <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/data', exposure, 'comorbidities', 'Aurum code comorbidities', sep = '/')
-path_comorb_hes <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/data', exposure, 'comorbidities', 'ICD code comorbidities', sep = '/')
+path_comorb_cprd <- paste('Z:/EPI/Protocol 24_004042/Gwen - ipcw_methods/data', exposure, 'comorbidities', 'Aurum code comorbidities', sep = '/')
+path_comorb_hes <- paste('Z:/EPI/Protocol 24_004042/Gwen - ipcw_methods/data', exposure, 'comorbidities', 'ICD code comorbidities', sep = '/')
 
 path_linkage_1 <- 'Z:/EPI/Protocol 24_004042/Data linkage/Results/Aurum_linked/Final_pt1'
 path_linkage_2 <- 'Z:/EPI/Protocol 24_004042/Data linkage/Results/Aurum_linked/Final_pt2'
@@ -69,8 +67,6 @@ setwd(path_intermediate_res)
 cov_desc <- "cov_desc.txt"
 writeLines("Covariate description:", cov_desc)
 cat(paste("Date:", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), '\n'), file = cov_desc, append= TRUE)
-
-if (outcome == 'suicidal ideation') {outcome <- 'suicidal_ideation_self_harm'}
 
 #### YEAR OF ENTRY, AGE GROUP, ETHNICITY, AND DEPRIVATION ####
 
@@ -406,14 +402,16 @@ first_comorb <- first_comorb %>%
 saveRDS(first_comorb, file = paste(path_intermediate_res, 'first_comorb.rds', sep = '/'))
 
 # for subgroup analyses additionally save in subgroup folders
-saveRDS(first_comorb, file = paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, 'male', 'intermediate',  'first_comorb.rds', sep = '/'))
-saveRDS(first_comorb, file = paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, 'female', 'intermediate', 'first_comorb.rds', sep = '/'))
-saveRDS(first_comorb, file = paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, 'young', 'intermediate',  'first_comorb.rds', sep = '/'))
-saveRDS(first_comorb, file = paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, 'old', 'intermediate',  'first_comorb.rds', sep = '/'))
-saveRDS(first_comorb, file = paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, '2019', 'intermediate',  'first_comorb.rds', sep = '/'))
-saveRDS(first_comorb, file = paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, '2020', 'intermediate',  'first_comorb.rds', sep = '/'))
-saveRDS(first_comorb, file = paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, '2021', 'intermediate',  'first_comorb.rds', sep = '/'))
-saveRDS(first_comorb, file = paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, '2022', 'intermediate',  'first_comorb.rds', sep = '/'))
+if (analysis == 'main') {
+  saveRDS(first_comorb, file = paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, 'male', 'intermediate',  'first_comorb.rds', sep = '/'))
+  saveRDS(first_comorb, file = paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, 'female', 'intermediate', 'first_comorb.rds', sep = '/'))
+  saveRDS(first_comorb, file = paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, 'young', 'intermediate',  'first_comorb.rds', sep = '/'))
+  saveRDS(first_comorb, file = paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, 'old', 'intermediate',  'first_comorb.rds', sep = '/'))
+  saveRDS(first_comorb, file = paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, '2019', 'intermediate',  'first_comorb.rds', sep = '/'))
+  saveRDS(first_comorb, file = paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, '2020', 'intermediate',  'first_comorb.rds', sep = '/'))
+  saveRDS(first_comorb, file = paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, '2021', 'intermediate',  'first_comorb.rds', sep = '/'))
+  saveRDS(first_comorb, file = paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, '2022', 'intermediate',  'first_comorb.rds', sep = '/'))
+}
 
 if (exposure == 'antidepressant') {
   saveRDS(first_comorb, file = paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, outcome, 'depressed', 'intermediate',  'first_comorb.rds', sep = '/'))
@@ -459,62 +457,48 @@ base_comorb
 dec_comorb
 
 # remove covariates that violate positivity assumption (too few counts)
-comorbidities <- comorbidities[!comorbidities %in% c('hypocalcemia', 'hypomagnesemia', 'acute_renal_disease', 'cardiomyopathy', 'hypokalemia')]
+comorbidities <- comorbidities[!comorbidities %in% c('hypocalcemia', 'hypomagnesemia', 'acute_renal_disease', 'hypokalemia')]
 
-base_comorb <- base_comorb[!base_comorb %in% c('hypocalcemia_base', 'hypomagnesemia_base', 'acute_renal_disease_base', 'caridomyopathy_base', 'hypokalemia_base')]
+base_comorb <- base_comorb[!base_comorb %in% c('hypocalcemia_base', 'hypomagnesemia_base', 'acute_renal_disease_base', 'hypokalemia_base')]
 
 dec_comorb <- dec_comorb[!dec_comorb %in% c(
   'hypocalcemia_d1',
   'hypomagnesemia_d1',
   'acute_renal_disease_d1',
-  'cardiomyopathy_d1',
   'hypokalemia_d1',
   'hypocalcemia_d2',
   'hypomagnesemia_d2',
   'acute_renal_disease_d2',
-  'cardiomyopathy_d2',
   'hypokalemia_d2',
   'hypocalcemia_d3',
   'hypomagnesemia_d3',
   'acute_renal_disease_d3',
-  'cardiomyopathy_d3',
   'hypokalemia_d3',
   'hypocalcemia_d4',
   'hypomagnesemia_d4',
   'acute_renal_disease_d4',
-  'cardiomyopathy_d4',
   'hypokalemia_d4',
   'hypocalcemia_d5',
   'hypomagnesemia_d5',
   'acute_renal_disease_d5',
-  'cardiomyopathy_d5',
   'hypokalemia_d5',
   'hypocalcemia_d6',
   'hypomagnesemia_d6',
   'acute_renal_disease_d6',
-  'cardiomyopathy_d6',
   'hypokalemia_d6',
   'hypocalcemia_d7',
   'hypomagnesemia_d7',
   'acute_renal_disease_d7',
-  'cardiomyopathy_d7',
   'hypokalemia_d7',
   'hypocalcemia_d8',
   'hypomagnesemia_d8',
   'acute_renal_disease_d8',
-  'cardiomyopathy_d8',
   'hypokalemia_d8',
   'hypocalcemia_d9',
   'hypomagnesemia_d9',
   'acute_renal_disease_d9',
-  'cardiomyopathy_d9',
   'hypokalemia_d9'
 )]
-
-# remove baseline event
-comorbidities <- comorbidities[!comorbidities %in% c(outcome)]
-base_comorb <- base_comorb[!base_comorb %in% c(paste(outcome, '_base', sep = ''))]
-dec_comorb <- dec_comorb[!dec_comorb %in% c(paste(outcome, '_d', 1:9, sep = ''))]
 
 saveRDS(covariates, file = paste(path_intermediate_res, 'covariates.rds', sep = '/'))
 saveRDS(comorbidities, file = paste(path_intermediate_res, 'comorbidities.rds', sep = '/'))

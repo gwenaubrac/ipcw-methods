@@ -5,12 +5,12 @@
 ## Purposes:
 ## - Specify study design, including study period (start, recruitment end, follow-up end)
 ## and codes for exposures of interest in CPRD Aurum. 
-## - Create a 'cohort' dataframe of first-time users for specified exposure meeting inclusion and exclusion criteria.
+## - Create a 'cohort' dataframe of first-time users for antidepressants and antihypertensives meeting inclusion and exclusion criteria.
 ## - Create a 'rx_for_exposure' dataframe containing the prescriptions of all CPRD Aurum patients for the exposures of interest 
 ## (to be used later to assess treatment discontinuation).
 ##
 ## Inclusion criteria:
-## - Prescription for exposure of interest during specified study period. 
+## - First prescription for antidepressant/antihypertensive between Jan 2019 and Dec 2022. 
 ##
 ## Exclusion criteria:
 ## - Less than 18 years old at cohort entry
@@ -23,21 +23,13 @@
 ##
 ## ---------------------------
 ##
-## Notes: 
-## 1. The folder for the exposure codes should contain separate excel files for each 
-## exposure of interest (ex: 'ssri.xlsx' contains SSRI codes and 'snri.xlsx' contains SNRI codes).
-## Please adapt 'ProdCodeId' to the column name corresponding to the exposure codes in excel file. 
-##
-## 2. The data used for this project was converted from SAS to R. 
-##
-## 3. The initial cohort is saved in the folder for all-cause mortality analyses. 
-## The same base cohort is used to investigate other outcomes. 
+## Notes:
 ##
 ## ---------------------------
 
 #### SPECIFY ANALYSIS ####
 
-# cohort: antidepressant, antihypertensive, antidiabetic
+# cohort: antidepressant, antihypertensive
 exposure <- 'antihypertensive'
 
 #### LOAD PACKAGES ####
@@ -54,8 +46,8 @@ options(scipen = 999)
 
 #### DEFINE PATHS ####
 
-path_intermediate_res <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, 'all-cause mortality', 'main', 'intermediate', sep = '/')
-path_exposure <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/data', exposure, 'exposure', sep = '/')
+path_intermediate_res <- paste('Z:/EPI/Protocol 24_004042/Gwen - ipcw_methods/results', exposure, 'all-cause mortality', 'main', 'intermediate', sep = '/')
+path_exposure <- paste('Z:/EPI/Protocol 24_004042/Gwen - ipcw_methods/data', exposure, 'exposure', sep = '/')
 
 path_cprdA <- "Z:/EPI/Protocol 24_004042/dataA"
 path_cprdB <- "Z:/EPI/Protocol 24_004042/dataB" 

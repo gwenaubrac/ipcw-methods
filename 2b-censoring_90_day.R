@@ -16,7 +16,7 @@
 
 #### SPECIFY ANALYSIS ####
 
-# cohort: antidepressant, antihypertensive, antidiabetic
+# cohort: antidepressant, antihypertensive
 exposure <- 'antidepressant'
 
 #### LOAD PACKAGES ####
@@ -31,8 +31,8 @@ library(ggplot2)
 
 #### DEFINE PATHS ####
 
-path_intermediate_res_main <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, 'all-cause mortality', 'main', 'intermediate', sep = '/')
-path_intermediate_res <- paste('Z:/EPI/Protocol 24_004042/Gwen - IPCW + vis/results', exposure, 'all-cause mortality', '90_day_grace_period', 'intermediate', sep = '/')
+path_intermediate_res_main <- paste('Z:/EPI/Protocol 24_004042/Gwen - ipcw_methods/results', exposure, 'all-cause mortality', 'main', 'intermediate', sep = '/')
+path_intermediate_res <- paste('Z:/EPI/Protocol 24_004042/Gwen - ipcw_methods/results', exposure, 'all-cause mortality', '90_day_grace_period', 'intermediate', sep = '/')
 cohort <- readRDS(file = paste(path_intermediate_res_main, 'cohort_creation.rds', sep = '/'))
 study_follow_up_end = ymd(20240331) # end of follow-up
 
