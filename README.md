@@ -10,11 +10,10 @@ Access to CPRD data is supported by ISAC protocol 24_004042. This work is conduc
 | 1-cohort_creation  | Create cohorts of first-time users of two treatments being compared within the CPRD  |
 | 2-censoring  | Define cohort exit (censoring) and date of treatment discontinuation (separate programs for different grace periods)  |
 | 3-covariates  | Define covariates and the first occurrence of comorbidities  |
-| 4-outcome  | Define the occurrence and timing of all-cause mortality or a clinical event (separate programs)  |
+| 4-outcome  | Define the occurrence and timing of all-cause mortality and follow-up  |
 | 5-subgroups  | Split the data into subgroups of patients for subgroup analyses  |
 | 6-iptw | Compute IPTW weights to adjust for confoudning |
-| 7-ipcw  | Split data into follow-up intervals and compute different IPCW models to adjust for informative censoring  |
+| 7-ipcw  | Split data into follow-up intervals and compute different IPCW models to adjust for informative censoring  (original model: all intervals are included; no deaths model: intervals in which patients died are removed when fitting IPCW)|
 | 8-analyses  | Analyze incidence rate ratios and hazard ratios of the outcome between two treatment groups  |
 | 9-bootstrap  | Replicate steps 6-8 1,000 times to obtain robust confidence intervals for incidence rates  |
-| 10-create_plots  | Create tables and plots to communicate findings  |
-| 11-prepare_visualization  | Generate back-end data to describe event rates and confounding structures to test a visualization tool  |
+| 10-plot_results  | Create tables and plots to communicate findings  |
