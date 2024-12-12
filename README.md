@@ -15,5 +15,5 @@ Access to CPRD data is supported by ISAC protocol 24_004042. This work is conduc
 | 6-iptw | Compute IPTW weights to adjust for confoudning |
 | 7-ipcw  | Split data into follow-up intervals and compute different IPCW models to adjust for informative censoring  (original model: all intervals are included; no deaths model: intervals in which patients died are removed when fitting IPCW)|
 | 8-analyses  | Analyze incidence rate ratios and hazard ratios of the outcome between two treatment groups  |
-| 9-bootstrap  | Replicate steps 6-8 1,000 times to obtain robust confidence intervals for incidence rates  |
+| 9-bootstrap  | Repeat steps 6-8 1,000 times to obtain robust confidence intervals for incidence rates  |
 | 10-plot_results  | Create tables and plots to communicate findings  |
