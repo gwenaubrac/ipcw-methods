@@ -18,9 +18,7 @@ Access to CPRD data is supported by ISAC protocol 24_004042. This work is conduc
 | 9-bootstrap  | Repeat steps 6-8 1,000 times to obtain robust confidence intervals for incidence rates  |
 | 10-plot_results  | Create tables and plots to communicate findings  |
 
-Packages used for this project:
-
-R Packages Used for Analysis
+Packages used for this project:  
 1.
 Canty A, Ripley B. boot: Bootstrap Functions (Originally by Angelo Canty for S). Published online April 8, 1999:1.3-31. doi:10.32614/CRAN.package.boot  
 2.
