@@ -22,26 +22,26 @@ Packages used for this project:
 
 R Packages Used for Analysis
 1.
-Canty A, Ripley B. boot: Bootstrap Functions (Originally by Angelo Canty for S). Published online April 8, 1999:1.3-31. doi:10.32614/CRAN.package.boot
+Canty A, Ripley B. boot: Bootstrap Functions (Originally by Angelo Canty for S). Published online April 8, 1999:1.3-31. doi:10.32614/CRAN.package.boot  
 2.
-Greifer N. cobalt: Covariate Balance Tables and Plots. Published online April 2, 2024. Accessed September 16, 2024. https://cran.r-project.org/web/packages/cobalt/index.html
+Greifer N. cobalt: Covariate Balance Tables and Plots. Published online April 2, 2024. Accessed September 16, 2024. https://cran.r-project.org/web/packages/cobalt/index.html  
 3.
-Davison AC, Hinkley DV. Bootstrap Methods and Their Application. Cambridge University Press; 1997. doi:10.1017/CBO9780511802843
+Davison AC, Hinkley DV. Bootstrap Methods and Their Application. Cambridge University Press; 1997. doi:10.1017/CBO9780511802843  
 4.
-Greifer N. WeightIt: Weighting for Covariate Balance in Observational Studies. Published online August 24, 2024. Accessed September 16, 2024. https://cran.r-project.org/web/packages/WeightIt/index.html
+Greifer N. WeightIt: Weighting for Covariate Balance in Observational Studies. Published online August 24, 2024. Accessed September 16, 2024. https://cran.r-project.org/web/packages/WeightIt/index.html  
 5.
-Wickham H, Averick M, Bryan J, et al. Welcome to the Tidyverse. Journal of Open Source Software. 2019;4(43):1686. doi:10.21105/joss.01686
+Wickham H, Averick M, Bryan J, et al. Welcome to the Tidyverse. Journal of Open Source Software. 2019;4(43):1686. doi:10.21105/joss.01686  
 6.
-Huling J, Bates D, Eddelbuettel D, Francois R, Qiu Y. fastglm: Fast and Stable Fitting of Generalized Linear Models using “RcppEigen.” Published online May 23, 2022. Accessed September 16, 2024. https://cran.r-project.org/web/packages/fastglm/index.html
+Huling J, Bates D, Eddelbuettel D, Francois R, Qiu Y. fastglm: Fast and Stable Fitting of Generalized Linear Models using “RcppEigen.” Published online May 23, 2022. Accessed September 16, 2024. https://cran.r-project.org/web/packages/fastglm/index.html  
 7.
-Wickham H. The Split-Apply-Combine Strategy for Data Analysis. Journal of Statistical Software. 2011;40:1-29. doi:10.18637/jss.v040.i01
+Wickham H. The Split-Apply-Combine Strategy for Data Analysis. Journal of Statistical Software. 2011;40:1-29. doi:10.18637/jss.v040.i01  
 8.
-Kassambara A, Kosinski M, Biecek P, Fabian S. survminer: Drawing Survival Curves using “ggplot2.” Published online March 9, 2021. Accessed September 16, 2024. https://cran.r-project.org/web/packages/survminer/index.html
+Kassambara A, Kosinski M, Biecek P, Fabian S. survminer: Drawing Survival Curves using “ggplot2.” Published online March 9, 2021. Accessed September 16, 2024. https://cran.r-project.org/web/packages/survminer/index.html  
 9.
-Therneau TM, until 2009) TL (original S >R port and R maintainer, Elizabeth A, Cynthia C. survival: Survival Analysis. Published online June 5, 2024. Accessed September 16, 2024. https://cran.r-project.org/web/packages/survival/index.html
+Therneau TM, until 2009) TL (original S >R port and R maintainer, Elizabeth A, Cynthia C. survival: Survival Analysis. Published online June 5, 2024. Accessed September 16, 2024. https://cran.r-project.org/web/packages/survival/index.html  
 10.
-Rich B. table1: Tables of Descriptive Statistics in HTML. Published online January 6, 2023. Accessed September 16, 2024. https://cran.r-project.org/web/packages/table1/index.html
+Rich B. table1: Tables of Descriptive Statistics in HTML. Published online January 6, 2023. Accessed September 16, 2024. https://cran.r-project.org/web/packages/table1/index.html  
 11.
-Barrett M. tidysmd: Tidy Standardized Mean Differences. Published online May 26, 2023. Accessed September 16, 2024. https://cran.r-project.org/web/packages/tidysmd/index.html
+Barrett M. tidysmd: Tidy Standardized Mean Differences. Published online May 26, 2023. Accessed September 16, 2024. https://cran.r-project.org/web/packages/tidysmd/index.html  
 12.
-Barrett T, Dowle M, Srinivasan A, et al. data.table: Extension of “data.frame.” Published online August 27, 2024. Accessed September 16, 2024. https://cran.r-project.org/web/packages/data.table/index.html
+Barrett T, Dowle M, Srinivasan A, et al. data.table: Extension of “data.frame.” Published online August 27, 2024. Accessed September 16, 2024. https://cran.r-project.org/web/packages/data.table/index.html  
